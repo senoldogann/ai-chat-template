@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { validateFileSize, sanitizeFilename } from '@/lib/security/validation';
+import { sanitizeFilename } from '@/lib/security/validation';
 import { createErrorResponse } from '@/lib/security/error-handler';
 
 // Maximum file size: 10MB
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const chatId = formData.get('chatId') as string;
+    // chatId is not used in this endpoint, but kept for future use
+    const _chatId = formData.get('chatId') as string;
 
     if (!file) {
       return Response.json({ error: 'No file provided' }, { status: 400 });
@@ -57,7 +58,14 @@ export async function POST(request: NextRequest) {
 
     // Process file based on type
     let fileContent: string = '';
-    let fileMetadata: any = {
+    const fileMetadata: {
+      name: string;
+      type: string;
+      size: number;
+      format?: string;
+      dataUrl?: string;
+      truncated?: boolean;
+    } = {
       name: sanitizedFilename,
       type: fileType,
       size: file.size,
@@ -78,7 +86,7 @@ export async function POST(request: NextRequest) {
           fileContent = fileContent.substring(0, 100 * 1024);
           fileMetadata.truncated = true;
         }
-      } catch (error) {
+      } catch (_error) {
         return Response.json(
           { error: 'Failed to read file content' },
           { status: 400 }

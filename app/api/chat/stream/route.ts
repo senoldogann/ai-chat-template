@@ -8,7 +8,10 @@ import { createErrorResponse } from '@/lib/security/error-handler';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    let { chatId, role, content } = body;
+    const { chatId: chatIdInput, role: roleInput, content: contentInput } = body;
+    const chatId = chatIdInput;
+    const role = roleInput;
+    let content = contentInput;
 
     // Validate required fields
     if (!chatId || !role || !content) {

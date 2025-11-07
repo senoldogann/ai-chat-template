@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sanitizeInput } from '@/lib/prompt-sanitizer';
-import { validateUUID, validateMessageLength } from '@/lib/security/validation';
+import { validateMessageLength } from '@/lib/security/validation';
 import { createErrorResponse } from '@/lib/security/error-handler';
 
 // Get a specific chat with messages
@@ -132,10 +132,13 @@ export async function DELETE(
       await prisma.chat.delete({
         where: { id: chatId },
       });
-    } catch (deleteError: any) {
+    } catch (deleteError: unknown) {
       // If chat doesn't exist, return 404
-      if (deleteError?.code === 'P2025') {
-        return Response.json({ error: 'Chat not found' }, { status: 404 });
+      if (deleteError && typeof deleteError === 'object' && 'code' in deleteError) {
+        const prismaError = deleteError as { code?: string };
+        if (prismaError.code === 'P2025') {
+          return Response.json({ error: 'Chat not found' }, { status: 404 });
+        }
       }
       throw deleteError;
     }

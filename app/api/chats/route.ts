@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       if (text && text.trim()) {
         body = JSON.parse(text);
       }
-    } catch (parseError) {
+    } catch (_parseError) {
       // If body is empty or invalid JSON, use empty object (title will be null)
       body = {};
     }

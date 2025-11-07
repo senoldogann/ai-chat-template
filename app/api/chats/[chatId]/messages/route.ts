@@ -18,7 +18,9 @@ export async function POST(
     }
 
     const body = await request.json();
-    let { role, content } = body;
+    const { role: roleInput, content: contentInput } = body;
+    const role = roleInput;
+    let content = contentInput;
 
     // Validate required fields
     if (!role || !content) {
