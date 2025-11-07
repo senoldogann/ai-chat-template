@@ -375,11 +375,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [React Markdown](https://github.com/remarkjs/react-markdown) - Markdown rendering
 - All LLM providers for their amazing APIs
 
+## 📚 Documentation
+
+- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute to this project
+- [Changelog](docs/CHANGELOG.md) - Project changelog and version history
+- [Tools Integration](docs/TOOLS_INTEGRATION.md) - How tools are integrated with LLM providers
+
 ## 📧 Support
 
 If you have any questions or need help, please:
-- Open an issue on [GitHub](https://github.com/yourusername/ai-chat-template/issues)
-- Check the [documentation](https://github.com/yourusername/ai-chat-template/wiki)
+- Open an issue on [GitHub](https://github.com/senoldogann/ai-chat-template/issues)
+- Check the [documentation](docs/)
 
 ## 🗺️ Roadmap
 
