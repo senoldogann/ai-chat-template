@@ -24,6 +24,13 @@
 .DS_Store
 *.pem
 
+# Social media posts and marketing materials
+*_POST.md
+*_POST.txt
+LINKEDIN_*.md
+TWITTER_*.md
+FACEBOOK_*.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
