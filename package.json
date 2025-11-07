@@ -1,27 +1,90 @@
 {
-  "name": "test",
-  "version": "0.1.0",
-  "private": true,
+  "name": "ai-chat-template",
+  "version": "1.0.0",
+  "description": "A modern, feature-rich AI chat interface template built with Next.js, supporting multiple LLM providers, multimodal inputs, and advanced tools",
+  "keywords": [
+    "ai",
+    "chat",
+    "llm",
+    "nextjs",
+    "react",
+    "openai",
+    "anthropic",
+    "google",
+    "huggingface",
+    "ollama",
+    "chatbot",
+    "ai-assistant",
+    "multimodal",
+    "streaming",
+    "prisma",
+    "typescript"
+  ],
+  "author": "Senol Dogan <senoldogan02@hotmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/senoldogann/ai-chat-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/senoldogann/ai-chat-template/issues"
+  },
+  "homepage": "https://github.com/senoldogann/ai-chat-template#readme",
+  "private": false,
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "app",
+    "lib",
+    "prisma",
+    "public",
+    "middleware.ts",
+    "next.config.ts",
+    "tsconfig.json",
+    "postcss.config.mjs",
+    "eslint.config.mjs",
+    "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    ".npmignore"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.2.3",
+    "mathjs": "^15.1.0",
+    "next": "16.0.1",
+    "papaparse": "^5.5.3",
+    "pg": "^8.16.3",
+    "prisma": "^6.19.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "next": "16.0.1"
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "babel-plugin-react-compiler": "1.0.0",
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/papaparse": "^5.5.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1"
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

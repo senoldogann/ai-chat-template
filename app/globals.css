@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
+/* Light theme variables */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f8;
+  --bg-sidebar: #f5f5f5; /* Slightly darker than bg-primary for sidebar */
+  --text-primary: #353740;
+  --text-secondary: #6e6e80;
+  --accent-color: #10a37f;
+  --accent-hover: #0d8f6e;
+  --border-color: #e5e5e6;
+  --border-subtle: rgba(0, 0, 0, 0.05); /* Very subtle border - like in image */
+  --user-message-bg: #f0f0f0; /* Slightly darker for user message in light mode */
+  --ai-message-bg: #f7f7f8;
+  --input-bg: #ffffff; /* Same as bg-primary */
+  --hover-bg: #f0f0f0;
+  --shadow: rgba(0, 0, 0, 0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark theme variables - ChatGPT colors */
+.dark {
+  --bg-primary: #212121; /* Dark black - same as sidebar */
+  --bg-secondary: #40414f;
+  --bg-sidebar: #1a1a1a; /* Slightly darker than bg-primary for sidebar */
+  --text-primary: #ececf1;
+  --text-secondary: #8e8ea0;
+  --accent-color: #10a37f;
+  --accent-hover: #0d8f6e;
+  --border-color: #3f3f3f; /* Darker border color for dark mode */
+  --border-subtle: rgba(255, 255, 255, 0.1); /* Very subtle border - like in image */
+  --user-message-bg: #363636; /* Slightly lighter gray for user message bubble in dark mode */
+  --ai-message-bg: #2f2f2f; /* Slightly lighter than chat area */
+  --input-bg: #212121; /* Dark black for input area background */
+  --hover-bg: #2f3034;
+  --shadow: rgba(0, 0, 0, 0.3);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Animation for thinking dots */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1.4s infinite;
 }
