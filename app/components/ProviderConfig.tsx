@@ -15,9 +15,9 @@ interface ProviderConfigProps {
 }
 
 export default function ProviderConfig({ provider, onConfigUpdate, isStandalone = false }: ProviderConfigProps) {
-  const theme = useTheme();
+  const _theme = useTheme(); // Keep for future use
   const [isOpen, setIsOpen] = useState(false);
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<{ hasApiKey?: boolean; model?: string; defaultTemperature?: number; defaultMaxTokens?: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
     setLoading(true);
     try {
       // First, try to load from localStorage (user's saved settings)
-      let savedConfig: any = null;
+      let savedConfig: { apiKey?: string; model?: string; temperature?: number; maxTokens?: number } | null = null;
       if (typeof window !== 'undefined') {
         try {
           const saved = localStorage.getItem('ai-chat-provider-configs');
@@ -54,7 +54,7 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
       
       // Then, load from .env (default config)
       const response = await fetch(`/api/llm/config?provider=${provider}`);
-      let envConfig: any = null;
+      let envConfig: { hasApiKey?: boolean; model?: string; defaultTemperature?: number; defaultMaxTokens?: number } | null = null;
       if (response.ok) {
         envConfig = await response.json();
         setConfig(envConfig);
@@ -141,17 +141,19 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
     }
   };
 
+  // Load config when provider changes (for standalone mode)
+  useEffect(() => {
+    if (isStandalone && provider) {
+      loadConfig();
+    }
+  }, [provider, isStandalone]);
+
   if (!provider) {
     return null;
   }
 
   // If standalone, only render content (modal wrapper is in parent)
   if (isStandalone) {
-    useEffect(() => {
-      if (provider) {
-        loadConfig();
-      }
-    }, [provider]);
 
     return (
       <div className="space-y-4">

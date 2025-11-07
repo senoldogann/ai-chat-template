@@ -9,8 +9,13 @@ export default function ChatPage() {
   const chatId = params?.chatId as string;
   const [mounted, setMounted] = useState(false);
 
+  // Use startTransition to avoid calling setState synchronously in effect
   useEffect(() => {
-    setMounted(true);
+    // Use setTimeout to defer state update
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!mounted) {
