@@ -73,13 +73,14 @@ Original prompt: "${sanitizedPrompt}"`;
     }
 
     // Call LLM to improve the prompt
-    const messages = [
+    const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
       { role: 'system', content: systemMessage },
       { role: 'user', content: 'Please improve this prompt for better AI understanding.' }
     ];
 
     // Call provider to improve the prompt
-    const response = await provider.chat({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (provider as any).chat({
       messages,
       temperature: 0.3, // Lower temperature for more consistent results
       max_tokens: 500,

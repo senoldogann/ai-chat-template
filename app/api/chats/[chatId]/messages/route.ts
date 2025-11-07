@@ -71,7 +71,7 @@ export async function POST(
       });
 
       if (chat) {
-        const userMessages = chat.messages.filter((msg) => msg.role === 'user');
+        const userMessages = chat.messages.filter((msg: { role: string }) => msg.role === 'user');
         if (userMessages.length === 1) {
           // First message, use it as title (truncated to 200 chars)
           const title = content.length > 200 ? content.substring(0, 200) : content;

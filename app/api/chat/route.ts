@@ -197,7 +197,9 @@ async function handleFunctionCall(functionName: string, args: unknown): Promise<
     throw new Error(`Unknown function: ${functionName}`);
   }
   
-  return await tool.execute(args);
+  // Type assertion for tool args (tools will validate their own args)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return await tool.execute(args as any);
 }
 
 /**
@@ -278,7 +280,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { 
-      messages, 
+      messages: messagesInput, 
       temperature = 0.7, 
       max_tokens = 1000, 
       stream = true, 
@@ -299,6 +301,9 @@ export async function POST(request: NextRequest) {
       apiKey?: string;
       baseURL?: string;
     };
+    
+    // Convert messages to typed array
+    let messages: Array<{ role: string; content: string }> = (messagesInput as Array<{ role: string; content: string }>);
 
     // Validate messages array
     if (!Array.isArray(messages)) {
@@ -321,7 +326,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate and sanitize all user messages
-    messages = messages.map((msg: { role: string; content: string }) => {
+    const sanitizedMessages = messages.map((msg: { role: string; content: string }) => {
       if (!msg || typeof msg !== 'object') {
         throw new Error('Invalid message format');
       }
@@ -352,9 +357,12 @@ export async function POST(request: NextRequest) {
         content: sanitizeInput(msg.content || ''),
       };
     });
+    
+    // Update messages with sanitized version
+    messages = sanitizedMessages;
 
     // Check if last user message requires a tool
-    const lastUserMessage = messages.filter((m: { role: string; content: string }) => m.role === 'user').pop();
+    const lastUserMessage = sanitizedMessages.filter((m: { role: string; content: string }) => m.role === 'user').pop();
     if (lastUserMessage) {
       console.log(`[Tool Detection] Checking message: "${lastUserMessage.content}"`);
       const toolUsage = detectToolUsage(lastUserMessage.content);
@@ -367,7 +375,9 @@ export async function POST(request: NextRequest) {
           
           // Execute tool
           const tool = TOOLS[toolUsage.tool];
-          const toolResult = await tool.execute(toolUsage.args);
+          // Type assertion for tool args (tools will validate their own args)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const toolResult = await tool.execute(toolUsage.args as any);
           
           // Log tool result for debugging
           if (toolUsage.tool === 'searchWeb') {
@@ -387,7 +397,7 @@ export async function POST(request: NextRequest) {
             const searchResult = toolResult as { query: string; results?: unknown[]; totalResults?: number; cached?: boolean };
             if (searchResult.results && searchResult.results.length > 0) {
               toolContext = `Web Search Results for "${searchResult.query}":\n\n`;
-              searchResult.results.forEach((result: { title: string; url: string; snippet: string }, index: number) => {
+              (searchResult.results as Array<{ title: string; url: string; snippet: string }>).forEach((result: { title: string; url: string; snippet: string }, index: number) => {
                 toolContext += `${index + 1}. ${result.title}\n   URL: ${result.url}\n   ${result.snippet}\n\n`;
               });
               toolContext += `Use these search results to provide accurate and up-to-date information. If the results are limited, mention that and provide the best answer based on available information.`;
@@ -427,7 +437,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Convert messages to LLM format
-    const llmMessages = messages.map((msg: { role: string; content: string }) => ({
+    const llmMessages = (messages as Array<{ role: string; content: string }>).map((msg: { role: string; content: string }) => ({
       role: msg.role,
       content: msg.content,
     }));
@@ -442,7 +452,8 @@ export async function POST(request: NextRequest) {
       // Title update is also handled by frontend for immediate UI update
 
       // Get stream from provider
-      const stream = await provider.stream({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stream = await (provider as any).stream({
         messages: llmMessages,
         temperature,
         max_tokens,
@@ -538,7 +549,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If not streaming, use provider chat
-    const llmResponse = await provider.chat({
+    const llmResponse = await (provider as { chat: (request: { messages: unknown[]; temperature?: number; max_tokens?: number; model?: string }) => Promise<{ content: string }> }).chat({
       messages: llmMessages,
       temperature,
       max_tokens,
@@ -557,6 +568,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Format response in OpenAI-compatible format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const llmResponseTyped = llmResponse as any;
     const response = {
       choices: [{
         message: {
@@ -564,8 +577,8 @@ export async function POST(request: NextRequest) {
           content: llmResponse.content,
         },
       }],
-      model: llmResponse.model || providerName,
-      usage: llmResponse.usage,
+      model: llmResponseTyped.model || providerName,
+      usage: llmResponseTyped.usage,
     };
     
     return new Response(JSON.stringify(response), {

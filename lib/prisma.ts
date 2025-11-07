@@ -21,7 +21,7 @@ export const prisma =
   });
 
 // Handle Prisma connection errors
-prisma.$connect().catch((error) => {
+prisma.$connect().catch((error: unknown) => {
   console.error('❌ Prisma connection error:', error);
   process.exit(1);
 });

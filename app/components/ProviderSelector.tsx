@@ -14,6 +14,7 @@ interface Provider {
   models: string[];
   apiUrl?: string;
   envKey: string;
+  note?: string;
 }
 
 interface ProviderSelectorProps {
