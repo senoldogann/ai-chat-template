@@ -7,7 +7,6 @@ import { createErrorResponse } from '@/lib/security/error-handler';
 import { 
   createLLMProvider, 
   getProviderConfigFromEnv, 
-  getDefaultProvider,
   type LLMProvider 
 } from '@/lib/llm/providers';
 
@@ -191,7 +190,8 @@ function convertToolsToFunctionFormat() {
  * Handle function call from AI response
  * Executes the tool and returns the result
  */
-async function handleFunctionCall(functionName: string, args: any): Promise<any> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function handleFunctionCall(functionName: string, args: unknown): Promise<unknown> {
   const tool = TOOLS[functionName as ToolName];
   if (!tool) {
     throw new Error(`Unknown function: ${functionName}`);
@@ -203,12 +203,13 @@ async function handleFunctionCall(functionName: string, args: any): Promise<any>
 /**
  * Detect if user message requires a tool (legacy - kept for fallback)
  */
-function detectToolUsage(message: string): { tool: ToolName | null; args: any } | null {
+function detectToolUsage(message: string): { tool: ToolName | null; args: unknown } | null {
   const lowerMessage = message.toLowerCase();
   
   console.log(`[Tool Detection] Checking message: "${message}"`);
   
-  const hasGenerationKeyword = /generate|create|draw|make|olustur|yarat|produce|render/.test(lowerMessage);
+  // Check for generation keywords (unused but kept for future use)
+  // const hasGenerationKeyword = /generate|create|draw|make|olustur|yarat|produce|render/.test(lowerMessage);
   
   // Calculator detection
   if (/calculate|compute|math|hesapla|hesap/.test(lowerMessage) && 
@@ -276,7 +277,7 @@ function detectToolUsage(message: string): { tool: ToolName | null; args: any } 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    let { 
+    const { 
       messages, 
       temperature = 0.7, 
       max_tokens = 1000, 
@@ -287,7 +288,17 @@ export async function POST(request: NextRequest) {
       // Session config overrides (from UI)
       apiKey: sessionApiKey,
       baseURL: sessionBaseURL,
-    } = body;
+    } = body as {
+      messages: unknown[];
+      temperature?: number;
+      max_tokens?: number;
+      stream?: boolean;
+      chatId?: string;
+      provider?: string;
+      model?: string;
+      apiKey?: string;
+      baseURL?: string;
+    };
 
     // Validate messages array
     if (!Array.isArray(messages)) {
@@ -343,7 +354,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Check if last user message requires a tool
-    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+    const lastUserMessage = messages.filter((m: { role: string; content: string }) => m.role === 'user').pop();
     if (lastUserMessage) {
       console.log(`[Tool Detection] Checking message: "${lastUserMessage.content}"`);
       const toolUsage = detectToolUsage(lastUserMessage.content);
@@ -360,7 +371,7 @@ export async function POST(request: NextRequest) {
           
           // Log tool result for debugging
           if (toolUsage.tool === 'searchWeb') {
-            const searchResult = toolResult as any;
+            const searchResult = toolResult as { query: string; results?: unknown[]; totalResults?: number; cached?: boolean };
             console.log(`[Web Search] Query: "${searchResult.query}"`, {
               resultsCount: searchResult.results?.length || 0,
               totalResults: searchResult.totalResults || 0,
@@ -373,10 +384,10 @@ export async function POST(request: NextRequest) {
           // Format tool result for LLM based on tool type
           let toolContext = '';
           if (toolUsage.tool === 'searchWeb') {
-            const searchResult = toolResult as any;
+            const searchResult = toolResult as { query: string; results?: unknown[]; totalResults?: number; cached?: boolean };
             if (searchResult.results && searchResult.results.length > 0) {
               toolContext = `Web Search Results for "${searchResult.query}":\n\n`;
-              searchResult.results.forEach((result: any, index: number) => {
+              searchResult.results.forEach((result: { title: string; url: string; snippet: string }, index: number) => {
                 toolContext += `${index + 1}. ${result.title}\n   URL: ${result.url}\n   ${result.snippet}\n\n`;
               });
               toolContext += `Use these search results to provide accurate and up-to-date information. If the results are limited, mention that and provide the best answer based on available information.`;
@@ -393,7 +404,7 @@ export async function POST(request: NextRequest) {
             role: 'system',
             content: toolContext,
           });
-        } catch (toolError: any) {
+        } catch (toolError: unknown) {
           // If tool fails, continue without it
           console.error('[Tool Execution Error]', toolUsage.tool, toolError);
           messages.push({
