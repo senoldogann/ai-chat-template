@@ -20,6 +20,16 @@ export class GoogleProvider implements LLMProviderInterface {
     const baseURL = this.config.baseURL || 'https://generativelanguage.googleapis.com/v1beta';
     const model = request.model || this.config.model || 'gemini-pro';
 
+    // Google Gemini uses 'tools' parameter for function calling
+    // Convert OpenAI format tools to Gemini format if provided
+    const geminiTools = request.tools ? [{
+      function_declarations: request.tools.map(tool => ({
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: tool.function.parameters,
+      })),
+    }] : undefined;
+
     const response = await fetch(`${baseURL}/${model}:generateContent?key=${this.config.apiKey}`, {
       method: 'POST',
       headers: {
@@ -34,6 +44,8 @@ export class GoogleProvider implements LLMProviderInterface {
           temperature: request.temperature ?? this.config.defaultTemperature ?? 0.7,
           maxOutputTokens: request.max_tokens ?? this.config.defaultMaxTokens ?? 1000,
         },
+        // Add tools if provided (Google Gemini supports native function calling)
+        ...(geminiTools && { tools: geminiTools }),
       }),
     });
 
@@ -60,6 +72,16 @@ export class GoogleProvider implements LLMProviderInterface {
       headers: {
         'Content-Type': 'application/json',
       },
+      // Google Gemini uses 'tools' parameter for function calling
+      // Convert OpenAI format tools to Gemini format if provided
+      const geminiTools = request.tools ? [{
+        function_declarations: request.tools.map(tool => ({
+          name: tool.function.name,
+          description: tool.function.description,
+          parameters: tool.function.parameters,
+        })),
+      }] : undefined;
+
       body: JSON.stringify({
         contents: request.messages.map(msg => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
@@ -69,6 +91,8 @@ export class GoogleProvider implements LLMProviderInterface {
           temperature: request.temperature ?? this.config.defaultTemperature ?? 0.7,
           maxOutputTokens: request.max_tokens ?? this.config.defaultMaxTokens ?? 1000,
         },
+        // Add tools if provided (Google Gemini supports native function calling)
+        ...(geminiTools && { tools: geminiTools }),
       }),
     });
 

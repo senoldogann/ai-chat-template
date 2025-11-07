@@ -32,6 +32,9 @@ export class OpenAIProvider implements LLMProviderInterface {
         temperature: request.temperature ?? this.config.defaultTemperature ?? 0.7,
         max_tokens: request.max_tokens ?? this.config.defaultMaxTokens ?? 1000,
         stream: false,
+        // Add tools if provided (OpenAI supports native function calling)
+        ...(request.tools && { tools: request.tools }),
+        ...(request.tool_choice && { tool_choice: request.tool_choice }),
       }),
     });
 
@@ -65,6 +68,9 @@ export class OpenAIProvider implements LLMProviderInterface {
         temperature: request.temperature ?? this.config.defaultTemperature ?? 0.7,
         max_tokens: request.max_tokens ?? this.config.defaultMaxTokens ?? 1000,
         stream: true,
+        // Add tools if provided (OpenAI supports native function calling)
+        ...(request.tools && { tools: request.tools }),
+        ...(request.tool_choice && { tool_choice: request.tool_choice }),
       }),
     });
 

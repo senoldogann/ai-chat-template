@@ -17,12 +17,27 @@ export interface LLMMessage {
   content: string;
 }
 
+export interface LLMTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: string;
+      properties: Record<string, unknown>;
+      required?: string[];
+    };
+  };
+}
+
 export interface LLMRequest {
   messages: LLMMessage[];
   temperature?: number;
   max_tokens?: number;
   stream?: boolean;
   model?: string;
+  tools?: LLMTool[]; // Tools for function calling (OpenAI format)
+  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } }; // Tool choice (OpenAI format)
 }
 
 export interface LLMResponse {

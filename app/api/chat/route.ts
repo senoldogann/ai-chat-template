@@ -186,21 +186,8 @@ function convertToolsToFunctionFormat() {
   ];
 }
 
-/**
- * Handle function call from AI response
- * Executes the tool and returns the result
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function handleFunctionCall(functionName: string, args: unknown): Promise<unknown> {
-  const tool = TOOLS[functionName as ToolName];
-  if (!tool) {
-    throw new Error(`Unknown function: ${functionName}`);
-  }
-  
-  // Type assertion for tool args (tools will validate their own args)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return await tool.execute(args as any);
-}
+// Note: handleFunctionCall is kept for future use when native function calling is fully implemented
+// Currently, tools are executed via detectToolUsage before sending to LLM
 
 /**
  * Detect if user message requires a tool (legacy - kept for fallback)

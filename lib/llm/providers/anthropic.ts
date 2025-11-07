@@ -27,11 +27,21 @@ export class AnthropicProvider implements LLMProviderInterface {
         'x-api-key': this.config.apiKey,
         'anthropic-version': '2023-06-01',
       },
+      // Anthropic uses 'tools' parameter for function calling (Claude 3.5+)
+      // Convert OpenAI format tools to Anthropic format if provided
+      const anthropicTools = request.tools ? request.tools.map(tool => ({
+        name: tool.function.name,
+        description: tool.function.description,
+        input_schema: tool.function.parameters,
+      })) : undefined;
+
       body: JSON.stringify({
         model,
         messages: request.messages,
         temperature: request.temperature ?? this.config.defaultTemperature ?? 0.7,
         max_tokens: request.max_tokens ?? this.config.defaultMaxTokens ?? 1000,
+        // Add tools if provided (Anthropic supports native function calling)
+        ...(anthropicTools && anthropicTools.length > 0 && { tools: anthropicTools }),
       }),
     });
 
