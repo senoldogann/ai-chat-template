@@ -83,26 +83,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 3. **Set up environment variables**
    
-   Create a `.env` file in the root directory:
+   Create a `.env` file in the root directory. You can copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Then edit `.env` and fill in your values:
    ```env
    # Database (Required)
    DATABASE_URL="postgresql://user:password@localhost:5432/ai_chat"
    ```
    
-   **Note:** LLM provider API keys are optional. You can configure them via the UI after starting the application. If you want to set default values for all users, you can add them to `.env`:
-   
-   ```env
-   # Optional: Set default provider (if you want to pre-configure)
-   LLM_PROVIDER=openai
-   
-   # Optional: Pre-configure provider API keys (users can override in UI)
-   # OPENAI_API_KEY=sk-...
-   # ANTHROPIC_API_KEY=sk-ant-...
-   # GOOGLE_API_KEY=...
-   # HF_API=hf_...
-   # OLLAMA_BASE_URL=http://localhost:11434
-   # OPENROUTER_API_KEY=sk-or-...
-   ```
+   **Note:** LLM provider API keys are optional. You can configure them via the UI after starting the application. If you want to set default values for all users, you can add them to `.env`. See `.env.example` for all available options.
 
 4. **Set up the database**
    ```bash
