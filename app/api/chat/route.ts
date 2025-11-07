@@ -31,7 +31,7 @@ const DEFAULT_API_URLS: Record<LLMProvider, string> = {
 function getLLMProvider(
   providerName?: string,
   sessionConfig?: { apiKey?: string; baseURL?: string; model?: string }
-): { provider: any; providerName: LLMProvider } {
+): { provider: unknown; providerName: LLMProvider } {
   // Provider must be explicitly specified
   if (!providerName) {
     throw new Error('No LLM provider specified. Please select a provider in the UI and configure it with an API key.');
@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate and sanitize all user messages
-    messages = messages.map((msg: any) => {
+    messages = messages.map((msg: { role: string; content: string }) => {
       if (!msg || typeof msg !== 'object') {
         throw new Error('Invalid message format');
       }
@@ -407,9 +407,10 @@ export async function POST(request: NextRequest) {
         } catch (toolError: unknown) {
           // If tool fails, continue without it
           console.error('[Tool Execution Error]', toolUsage.tool, toolError);
+          const errorMessage = toolError instanceof Error ? toolError.message : 'Unknown error';
           messages.push({
             role: 'system',
-            content: `Tool execution failed: ${toolError.message}. Continue with normal response.`,
+            content: `Tool execution failed: ${errorMessage}. Continue with normal response.`,
           });
         }
       }
@@ -426,7 +427,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Convert messages to LLM format
-    const llmMessages = messages.map((msg: any) => ({
+    const llmMessages = messages.map((msg: { role: string; content: string }) => ({
       role: msg.role,
       content: msg.content,
     }));
