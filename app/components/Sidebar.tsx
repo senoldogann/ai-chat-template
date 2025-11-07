@@ -62,11 +62,16 @@ export default function Sidebar({ isOpen, onClose, onNewChat, onLoadChat, onChat
     }
   };
 
-  const handleChatClick = (chatId: string) => {
+  const handleChatClick = async (chatId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    // Load chat immediately - no delay needed
     if (onLoadChat) {
-      // Call loadChat immediately
       onLoadChat(chatId);
     }
+    // Close sidebar on mobile after loading chat
     onClose();
   };
 
@@ -115,9 +120,10 @@ export default function Sidebar({ isOpen, onClose, onNewChat, onLoadChat, onChat
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-30 h-full transform bg-[var(--bg-sidebar)] transition-all duration-300 lg:relative lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 h-full transform bg-[var(--bg-sidebar)] border-r border-[var(--sidebar-border)] transition-all duration-300 lg:relative lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } ${isCollapsed ? 'w-16' : 'w-64'}`}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex h-full flex-col">
           {/* Header with ChatGPT logo and collapse button */}
@@ -374,7 +380,7 @@ export default function Sidebar({ isOpen, onClose, onNewChat, onLoadChat, onChat
                     }`}
                   >
                     <button
-                      onClick={() => handleChatClick(chat.id)}
+                      onClick={(e) => handleChatClick(chat.id, e)}
                       className="w-full truncate pr-8 text-left cursor-pointer"
                     >
                       {chat.title || 'Yeni Sohbet'}

@@ -39,7 +39,13 @@ export class OllamaProvider implements LLMProviderInterface {
       headers['Authorization'] = `Bearer ${this.config.apiKey}`;
     }
 
-    const response = await fetch(`${baseURL}/api/chat`, {
+    // Determine the correct endpoint based on baseURL
+    // If baseURL includes 'ollama.com', it's cloud and endpoint is /chat
+    // If baseURL is localhost, it's local and endpoint is /api/chat
+    const isCloud = baseURL.includes('ollama.com');
+    const endpoint = isCloud ? '/chat' : '/api/chat';
+
+    const response = await fetch(`${baseURL}${endpoint}`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -80,7 +86,13 @@ export class OllamaProvider implements LLMProviderInterface {
       headers['Authorization'] = `Bearer ${this.config.apiKey}`;
     }
 
-    const response = await fetch(`${baseURL}/api/chat`, {
+    // Determine the correct endpoint based on baseURL
+    // If baseURL includes 'ollama.com', it's cloud and endpoint is /chat
+    // If baseURL is localhost, it's local and endpoint is /api/chat
+    const isCloud = baseURL.includes('ollama.com');
+    const endpoint = isCloud ? '/chat' : '/api/chat';
+
+    const response = await fetch(`${baseURL}${endpoint}`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -113,13 +125,62 @@ export class OllamaProvider implements LLMProviderInterface {
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          
+          if (done) {
+            // Final decode: if there's a value, decode it with stream: false
+            // Then process any remaining buffer
+            if (value) {
+              // Decode final chunk with stream: false to ensure complete decoding
+              buffer += decoder.decode(value, { stream: false });
+            } else if (buffer.trim()) {
+              // If no value but buffer exists, try to finalize buffer
+              try {
+                const finalDecoded = decoder.decode(new TextEncoder().encode(buffer), { stream: false });
+                buffer = finalDecoded;
+              } catch (e) {
+                // If decode fails, use buffer as is
+              }
+            }
+            
+            // Process all remaining buffer content
+            if (buffer.trim()) {
+              const lines = buffer.split('\n').filter(line => line.trim());
+              for (const line of lines) {
+                try {
+                  const json = JSON.parse(line);
+                  const delta = json.message?.content;
+                  if (delta) {
+                    controller.enqueue({
+                      content: delta,
+                      done: json.done || false,
+                      model: json.model || model,
+                    });
+                  }
+                  if (json.done) {
+                    controller.close();
+                    return;
+                  }
+                } catch (e) {
+                  // Ignore parse errors
+                }
+              }
+            }
+            
+            // Send done signal
+            controller.enqueue({ content: '', done: true });
+            controller.close();
+            return;
+          }
 
+          // Decode chunk (use stream: true for partial chunks)
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
+          
+          // Process complete lines
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+            
             if (line.trim() === '') continue;
             
             try {
@@ -141,8 +202,6 @@ export class OllamaProvider implements LLMProviderInterface {
             }
           }
         }
-
-        controller.close();
       },
     });
   }

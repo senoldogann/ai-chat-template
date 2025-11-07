@@ -53,29 +53,64 @@ function getLLMProvider(
   if (sessionConfig) {
     // If session config has API key, use it
     if (sessionConfig.apiKey) {
+      // For Ollama: if API key is provided, use cloud URL; otherwise use local URL
+      let finalBaseURL = sessionConfig.baseURL;
+      if (requestedProvider === 'ollama') {
+        if (sessionConfig.apiKey && sessionConfig.apiKey.trim() !== '') {
+          // Cloud mode - use cloud URL (always override if API key exists)
+          finalBaseURL = 'https://ollama.com/api';
+        } else {
+          // Local mode - use local URL
+          finalBaseURL = sessionConfig.baseURL || 'http://localhost:11434';
+        }
+      } else {
+        // For other providers, use provided baseURL or fallback to defaults
+        finalBaseURL = sessionConfig.baseURL || config?.baseURL || DEFAULT_API_URLS[requestedProvider];
+      }
+      
       config = {
         ...config,
         apiKey: sessionConfig.apiKey,
-        baseURL: sessionConfig.baseURL || config?.baseURL || DEFAULT_API_URLS[requestedProvider],
+        baseURL: finalBaseURL,
         model: sessionConfig.model || config?.model,
       };
       
       // Debug: log session config override (only in development)
       if (process.env.NODE_ENV === 'development') {
         console.log(`[getLLMProvider] Using session config with API key`);
+        console.log(`[getLLMProvider] Final baseURL:`, finalBaseURL);
       }
     } else if (config) {
       // If no session API key but env config exists, use env config
+      // For Ollama: if no API key, use local URL
+      let finalBaseURL = sessionConfig.baseURL;
+      if (requestedProvider === 'ollama' && !config.apiKey) {
+        finalBaseURL = sessionConfig.baseURL || 'http://localhost:11434';
+      } else {
+        finalBaseURL = sessionConfig.baseURL || config.baseURL;
+      }
+      
       config = {
         ...config,
-        baseURL: sessionConfig.baseURL || config.baseURL,
+        baseURL: finalBaseURL,
         model: sessionConfig.model || config.model,
       };
     }
   }
   
-  // If config is still null or invalid, throw error
-  if (!config || !config.apiKey) {
+  // For Ollama, API key is optional (local mode doesn't need API key)
+  // For other providers, API key is required
+  if (!config) {
+    throw new Error(`Provider ${requestedProvider} is not configured. Please configure it in the UI.`);
+  }
+  
+  // For Ollama, if no API key, ensure baseURL is set to local
+  if (requestedProvider === 'ollama' && !config.apiKey) {
+    config.baseURL = config.baseURL || 'http://localhost:11434';
+  }
+  
+  // For other providers, API key is required
+  if (requestedProvider !== 'ollama' && !config.apiKey) {
     // Debug: log error reason (only in development)
     if (process.env.NODE_ENV === 'development') {
       console.log(`[getLLMProvider] Config is null or missing API key`);
@@ -462,14 +497,53 @@ export async function POST(request: NextRequest) {
               const { done, value } = await reader.read();
               
               if (done) {
-                // Process any remaining buffer before closing
-                if (buffer.trim()) {
-                  const lines = buffer.split('\n').filter(line => line.trim());
-                  for (const line of lines) {
-                    controller.enqueue(encoder.encode(line + '\n'));
+                // Final decode: if there's a value, decode it with stream: false
+                // Then process any remaining buffer
+                if (value instanceof Uint8Array) {
+                  // Decode final chunk with stream: false to ensure complete decoding
+                  buffer += decoder.decode(value, { stream: false });
+                } else if (typeof value === 'string') {
+                  buffer += value;
+                } else if (buffer.trim()) {
+                  // If no value but buffer exists, try to finalize buffer
+                  try {
+                    const finalDecoded = decoder.decode(new TextEncoder().encode(buffer), { stream: false });
+                    buffer = finalDecoded;
+                  } catch (e) {
+                    // If decode fails, use buffer as is
                   }
                 }
                 
+                // Process all remaining buffer content
+                if (buffer.trim()) {
+                  const lines = buffer.split('\n').filter(line => line.trim());
+                  for (const line of lines) {
+                    if (line.trim()) {
+                      // Check if line is already in SSE format
+                      if (line.startsWith('data: ')) {
+                        controller.enqueue(encoder.encode(line + '\n'));
+                      } else {
+                        // Convert to SSE format
+                        try {
+                          // Try to parse as JSON (Ollama format)
+                          const json = JSON.parse(line);
+                          if (json.message?.content) {
+                            const data = JSON.stringify({
+                              choices: [{
+                                delta: { content: json.message.content },
+                              }],
+                              model: json.model || providerName,
+                            });
+                            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                          }
+                        } catch (e) {
+                          // If not JSON, send as is
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: line })}\n\n`));
+                        }
+                      }
+                    }
+                  }
+                }
                 
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                 break;
@@ -484,7 +558,27 @@ export async function POST(request: NextRequest) {
                 
                 for (const line of lines) {
                   if (line.trim()) {
-                    controller.enqueue(encoder.encode(line + '\n'));
+                    // Check if line is already in SSE format
+                    if (line.startsWith('data: ')) {
+                      controller.enqueue(encoder.encode(line + '\n'));
+                    } else {
+                      // Convert to SSE format (Ollama format)
+                      try {
+                        const json = JSON.parse(line);
+                        if (json.message?.content) {
+                          const data = JSON.stringify({
+                            choices: [{
+                              delta: { content: json.message.content },
+                            }],
+                            model: json.model || providerName,
+                          });
+                          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                        }
+                      } catch (e) {
+                        // If not JSON, send as is
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: line })}\n\n`));
+                      }
+                    }
                   }
                 }
               } else if (value instanceof Uint8Array) {
@@ -495,7 +589,27 @@ export async function POST(request: NextRequest) {
                 
                 for (const line of lines) {
                   if (line.trim()) {
-                    controller.enqueue(encoder.encode(line + '\n'));
+                    // Check if line is already in SSE format
+                    if (line.startsWith('data: ')) {
+                      controller.enqueue(encoder.encode(line + '\n'));
+                    } else {
+                      // Convert to SSE format (Ollama format)
+                      try {
+                        const json = JSON.parse(line);
+                        if (json.message?.content) {
+                          const data = JSON.stringify({
+                            choices: [{
+                              delta: { content: json.message.content },
+                            }],
+                            model: json.model || providerName,
+                          });
+                          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                        }
+                      } catch (e) {
+                        // If not JSON, send as is
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: line })}\n\n`));
+                      }
+                    }
                   }
                 }
               } else if (value && typeof value === 'object') {
@@ -511,6 +625,36 @@ export async function POST(request: NextRequest) {
                 }
 
                 if (value.done) {
+                  // Process any remaining buffer before closing
+                  if (buffer.trim()) {
+                    const lines = buffer.split('\n').filter(line => line.trim());
+                    for (const line of lines) {
+                      if (line.trim()) {
+                        // Check if line is already in SSE format
+                        if (line.startsWith('data: ')) {
+                          controller.enqueue(encoder.encode(line + '\n'));
+                        } else {
+                          // Convert to SSE format (Ollama format)
+                          try {
+                            const json = JSON.parse(line);
+                            if (json.message?.content) {
+                              const data = JSON.stringify({
+                                choices: [{
+                                  delta: { content: json.message.content },
+                                }],
+                                model: json.model || providerName,
+                              });
+                              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                            }
+                          } catch (e) {
+                            // If not JSON, send as is
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: line })}\n\n`));
+                          }
+                        }
+                      }
+                    }
+                  }
+                  
                   controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                   break;
                 }

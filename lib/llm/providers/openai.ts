@@ -93,13 +93,67 @@ export class OpenAIProvider implements LLMProviderInterface {
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          
+          if (done) {
+            // Final decode: if there's a value, decode it with stream: false
+            // Then process any remaining buffer
+            if (value) {
+              // Decode final chunk with stream: false to ensure complete decoding
+              buffer += decoder.decode(value, { stream: false });
+            } else if (buffer.trim()) {
+              // If no value but buffer exists, try to finalize buffer
+              try {
+                const finalDecoded = decoder.decode(new TextEncoder().encode(buffer), { stream: false });
+                buffer = finalDecoded;
+              } catch (e) {
+                // If decode fails, use buffer as is
+              }
+            }
+            
+            // Process all remaining buffer content
+            if (buffer.trim()) {
+              const lines = buffer.split('\n').filter(line => line.trim());
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6).trim();
+                  if (data === '[DONE]') {
+                    controller.enqueue({ content: '', done: true });
+                    controller.close();
+                    return;
+                  }
 
+                  try {
+                    const json = JSON.parse(data);
+                    const delta = json.choices?.[0]?.delta?.content;
+                    if (delta) {
+                      controller.enqueue({
+                        content: delta,
+                        done: false,
+                        model: json.model,
+                      });
+                    }
+                  } catch (e) {
+                    // Ignore parse errors
+                  }
+                }
+              }
+            }
+            
+            // Send done signal
+            controller.enqueue({ content: '', done: true });
+            controller.close();
+            return;
+          }
+
+          // Decode chunk (use stream: true for partial chunks)
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          
+          // Process complete lines
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
 
-          for (const line of lines) {
             if (line.trim() === '') continue;
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim();
@@ -125,8 +179,6 @@ export class OpenAIProvider implements LLMProviderInterface {
             }
           }
         }
-
-        controller.close();
       },
     });
   }

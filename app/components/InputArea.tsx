@@ -199,9 +199,9 @@ export default function InputArea({ onSend, isLoading, initialValue, onValueChan
   };
 
   return (
-    <div className="bg-[var(--input-bg)]">
-      <div className="mx-auto max-w-3xl px-4 py-4">
-        <form onSubmit={handleSubmit} className="relative">
+    <div className="bg-[var(--input-bg)] overflow-hidden">
+      <div className="mx-auto max-w-3xl px-4 py-4 overflow-hidden">
+        <form onSubmit={handleSubmit} className="relative overflow-hidden">
           {/* File Preview - Only for images, shown above input */}
           {uploadedFile && uploadedFile.preview && uploadedFile.type?.startsWith('image/') && (
             <div className="flex items-center gap-2 px-2 mb-2">
@@ -235,7 +235,7 @@ export default function InputArea({ onSend, isLoading, initialValue, onValueChan
               </button>
             </div>
           )}
-          <div className="relative flex items-start gap-2 rounded-2xl bg-[var(--border-color)] shadow-lg focus-within:shadow-xl transition-all min-h-[52px] py-2">
+          <div className="relative flex items-start gap-2 rounded-2xl bg-[var(--border-color)] shadow-lg focus-within:shadow-xl transition-all min-h-[52px] py-2 overflow-hidden">
             {/* Left side - Plus button with dropdown */}
             <div className="flex items-center ml-2 mt-2 shrink-0 relative z-10" ref={dropdownRef}>
               <button
@@ -387,9 +387,9 @@ export default function InputArea({ onSend, isLoading, initialValue, onValueChan
               onKeyDown={handleKeyDown}
               placeholder="Herhangi bir şey sor"
               rows={1}
-              className="flex-1 resize-none bg-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none py-3 pr-2 min-h-[36px] max-h-[200px] overflow-y-auto leading-[1.5]"
+              className="flex-1 resize-none bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none py-3 pr-2 min-h-[36px] max-h-[200px] overflow-y-auto leading-[1.5] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
               disabled={isLoading || isUploading}
-              style={{ maxHeight: '200px' }}
+              style={{ maxHeight: '200px', overflowY: 'auto' }}
             />
 
             {/* Right side - Send button (white circle with black arrow up) */}

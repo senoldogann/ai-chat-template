@@ -77,8 +77,10 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
   const [inputValue, setInputValue] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const loadingChatRef = useRef<string | null>(null); // Track which chat is currently loading
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   
   // Save provider configs to localStorage whenever they change
@@ -91,6 +93,44 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
       }
     }
   }, [providerConfigs]);
+
+  // Reload provider configs from localStorage periodically to catch external updates
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const reloadConfigs = () => {
+        try {
+          const saved = localStorage.getItem('ai-chat-provider-configs');
+          if (saved) {
+            const loadedConfigs = JSON.parse(saved);
+            // Only update if there are actual changes to avoid infinite loops
+            setProviderConfigs((prev) => {
+              const hasChanges = JSON.stringify(prev) !== JSON.stringify(loadedConfigs);
+              if (hasChanges) {
+                return loadedConfigs;
+              }
+              return prev;
+            });
+          }
+        } catch (error) {
+          console.error('Error reloading provider configs from localStorage:', error);
+        }
+      };
+
+      // Reload immediately on mount
+      reloadConfigs();
+
+      // Reload when window gains focus (user might have updated in another tab)
+      window.addEventListener('focus', reloadConfigs);
+
+      // Reload periodically (every 2 seconds) to catch updates
+      const interval = setInterval(reloadConfigs, 2000);
+
+      return () => {
+        window.removeEventListener('focus', reloadConfigs);
+        clearInterval(interval);
+      };
+    }
+  }, []);
   
   // Save selected provider to localStorage whenever it changes
   useEffect(() => {
@@ -127,9 +167,18 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
     if (initialChatId) {
       // Only load if initialChatId is different from currentChatId and not already loading
       // This prevents double loading when Sidebar calls loadChat first
-      if (initialChatId !== currentChatId && loadingChatRef.current !== initialChatId) {
-        // Update URL first, then load chat
-        router.replace(`/c/${initialChatId}`);
+      // Also check if messages are already loaded for this chat
+      const hasMessages = messages.length > 0 && messages.some(msg => msg.content && msg.content.trim() !== '');
+      const isSameChat = currentChatId === initialChatId;
+      const isCurrentlyLoading = loadingChatRef.current === initialChatId;
+      
+      // Only load if:
+      // 1. Different chat ID, OR
+      // 2. Same chat but no messages loaded, OR
+      // 3. Not currently loading
+      if ((!isSameChat || !hasMessages) && !isCurrentlyLoading) {
+        // Don't call router.replace here - it's already called in loadChat
+        // Just call loadChat directly
         loadChat(initialChatId);
       }
     } else if (currentChatId) {
@@ -158,9 +207,9 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
             const { safeJsonParse } = await import('@/lib/utils/safe-fetch');
             const chat = await safeJsonParse<any>(response);
             if (chat && chat.title) {
-              document.title = `${chat.title} - AI Chat Assistant`;
+              document.title = `${chat.title} - AI Sohbet Asistanı`;
             } else {
-              document.title = 'AI Chat Assistant';
+              document.title = 'AI Sohbet Asistanı';
             }
           }
         } catch (error) {
@@ -219,10 +268,13 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
 
     // Always load the chat if it's different from current
     // This ensures the chat loads on first click
-    // Only skip if it's the exact same chat with messages already loaded
-    // We need to check if messages are actually loaded, not just if currentChatId matches
+    // Only skip if it's the exact same chat with messages already loaded AND not currently loading
     const hasMessages = messages.length > 0 && messages.some(msg => msg.content && msg.content.trim() !== '');
-    if (currentChatId === chatId && hasMessages) {
+    const isCurrentlyLoading = loadingChatRef.current === chatId;
+    const isSameChat = currentChatId === chatId;
+    
+    // Only skip if same chat, has messages, and not currently loading
+    if (isSameChat && hasMessages && !isCurrentlyLoading) {
       console.log('Chat already loaded with messages, skipping:', chatId);
       return;
     }
@@ -232,13 +284,22 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
     // No need to check anything else - just load it
 
     try {
-      // Mark as loading
+      // Mark as loading FIRST to prevent duplicate calls
       loadingChatRef.current = chatId;
       
       // Clear messages and set chatId immediately to show loading state
       // This ensures UI updates immediately
       setMessages([]);
       setCurrentChatId(chatId);
+      
+      // Close sidebar on mobile when loading chat
+      setSidebarOpen(false);
+      
+      // Navigate to chat route (use replace to avoid back button issues)
+      // Only navigate if we're not already on this route
+      if (typeof window !== 'undefined' && !window.location.pathname.includes(`/c/${chatId}`)) {
+        router.replace(`/c/${chatId}`);
+      }
       
       // Fetch chat data
       const response = await fetch(`/api/chats/${chatId}`);
@@ -285,9 +346,9 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
       
       // Update browser title
       if (chat.title) {
-        document.title = `${chat.title} - AI Chat Assistant`;
+        document.title = `${chat.title} - AI Sohbet Asistanı`;
       } else {
-        document.title = 'AI Chat Assistant';
+        document.title = 'AI Sohbet Asistanı';
       }
       
       // Ensure messages are properly loaded with all fields
@@ -537,8 +598,67 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
           })),
           provider: selectedProvider || undefined,
           model: selectedModel || undefined,
-          apiKey: selectedProvider && providerConfigs[selectedProvider]?.apiKey ? providerConfigs[selectedProvider].apiKey : undefined,
-          baseURL: selectedProvider && providerConfigs[selectedProvider]?.baseURL ? providerConfigs[selectedProvider].baseURL : undefined,
+          apiKey: (() => {
+            // Get API key from state first, then fallback to localStorage
+            if (selectedProvider && providerConfigs[selectedProvider]?.apiKey) {
+              return providerConfigs[selectedProvider].apiKey;
+            }
+            // Fallback to localStorage if state is not updated yet
+            if (selectedProvider && typeof window !== 'undefined') {
+              try {
+                const saved = localStorage.getItem('ai-chat-provider-configs');
+                if (saved) {
+                  const allConfigs = JSON.parse(saved);
+                  return allConfigs[selectedProvider]?.apiKey;
+                }
+              } catch (error) {
+                console.error('Error reading API key from localStorage:', error);
+              }
+            }
+            return undefined;
+          })(),
+          baseURL: (() => {
+            // Get baseURL from state first, then fallback to localStorage
+            if (selectedProvider && providerConfigs[selectedProvider]?.baseURL) {
+              return providerConfigs[selectedProvider].baseURL;
+            }
+            // For Ollama, if API key exists, use cloud URL
+            if (selectedProvider === 'ollama') {
+              const apiKey = (() => {
+                if (providerConfigs[selectedProvider]?.apiKey) {
+                  return providerConfigs[selectedProvider].apiKey;
+                }
+                if (typeof window !== 'undefined') {
+                  try {
+                    const saved = localStorage.getItem('ai-chat-provider-configs');
+                    if (saved) {
+                      const allConfigs = JSON.parse(saved);
+                      return allConfigs[selectedProvider]?.apiKey;
+                    }
+                  } catch (error) {
+                    console.error('Error reading API key from localStorage:', error);
+                  }
+                }
+                return undefined;
+              })();
+              if (apiKey) {
+                return 'https://ollama.com/api';
+              }
+            }
+            // Fallback to localStorage if state is not updated yet
+            if (selectedProvider && typeof window !== 'undefined') {
+              try {
+                const saved = localStorage.getItem('ai-chat-provider-configs');
+                if (saved) {
+                  const allConfigs = JSON.parse(saved);
+                  return allConfigs[selectedProvider]?.baseURL;
+                }
+              } catch (error) {
+                console.error('Error reading baseURL from localStorage:', error);
+              }
+            }
+            return undefined;
+          })(),
           stream: true,
           chatId,
         }),
@@ -581,7 +701,22 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
             const { done, value } = await reader.read();
             
             if (done) {
-              // Process any remaining buffer before finalizing
+              // Final decode: if there's a value, decode it with stream: false
+              // Then process any remaining buffer
+              if (value) {
+                // Decode final chunk with stream: false to ensure complete decoding
+                buffer += decoder.decode(value, { stream: false });
+              } else if (buffer.trim()) {
+                // If no value but buffer exists, try to finalize buffer
+                try {
+                  const finalDecoded = decoder.decode(new TextEncoder().encode(buffer), { stream: false });
+                  buffer = finalDecoded;
+                } catch (e) {
+                  // If decode fails, use buffer as is
+                }
+              }
+              
+              // Process all remaining buffer content
               if (buffer.trim()) {
                 const lines = buffer.split('\n').filter(line => line.trim());
                 for (const line of lines) {
@@ -595,7 +730,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                       const json = JSON.parse(data);
                       const delta = json.choices?.[0]?.delta?.content;
                       if (delta) {
-                        console.log(`[Chat] Adding delta to message: ${delta.substring(0, 100)}...`);
+                        console.log(`[Chat] Adding final delta from buffer: ${delta.substring(0, 100)}...`);
                         aiMessageContent += delta;
                       }
                     } catch (e) {
@@ -604,7 +739,6 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                   }
                 }
               }
-              
               
               // Finalize message
               setMessages((prev) =>
@@ -625,11 +759,15 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
               return;
             }
 
+            // Decode chunk and add to buffer
             buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
+            
+            // Process complete lines (ending with \n)
+            let newlineIndex;
+            while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+              const line = buffer.slice(0, newlineIndex);
+              buffer = buffer.slice(newlineIndex + 1);
+              
               if (line.trim() === '') continue;
               
               if (line.startsWith('data: ')) {
@@ -657,7 +795,6 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                     }
                   }
                   
-                  
                   // Streaming complete - finalize message
                   setMessages((prev) =>
                     prev.map((msg, idx) =>
@@ -670,7 +807,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                   
                   // Save final AI message to database
                   if (aiMessageContent && chatId) {
-                    await saveStreamingMessage('assistant', aiMessageContent);
+                    await saveStreamingMessage('assistant', aiMessageContent, chatId);
                     // Trigger chat update event to refresh sidebar (for title update)
                     window.dispatchEvent(new Event('chatUpdated'));
                   }
@@ -741,7 +878,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
         setMessages([]);
         setInputValue(''); // Clear input field
         setSidebarOpen(false);
-        document.title = 'AI Chat Assistant';
+        document.title = 'AI Sohbet Asistanı';
         // Update URL to /c/[chatId]
         router.replace(`/c/${chatId}`);
       } else {
@@ -750,7 +887,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
         setCurrentChatId(null);
         setInputValue('');
         setSidebarOpen(false);
-        document.title = 'AI Chat Assistant';
+        document.title = 'AI Sohbet Asistanı';
         router.push('/');
       }
     } catch (error) {
@@ -762,6 +899,55 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
       setSidebarOpen(false);
       document.title = 'AI Chat Assistant';
       router.push('/');
+    }
+  };
+
+  // Export chat conversation
+  const handleExport = async (format: 'pdf' | 'markdown' | 'json') => {
+    if (!currentChatId) {
+      alert('Sohbet seçilmedi');
+      return;
+    }
+
+    try {
+      if (format === 'pdf') {
+        // For PDF, use Puppeteer server-side generation
+        const response = await fetch(`/api/chats/${currentChatId}/export?format=pdf`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'PDF oluşturulamadı' }));
+          throw new Error(errorData.error || 'PDF dışa aktarma için sohbet verisi alınamadı');
+        }
+        
+        // Get PDF blob and download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat-${currentChatId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // For Markdown and JSON, download directly from API
+        const response = await fetch(`/api/chats/${currentChatId}/export?format=${format}`);
+        if (!response.ok) {
+          throw new Error(`${format} formatında dışa aktarma başarısız oldu`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat-${currentChatId}.${format === 'markdown' ? 'md' : 'json'}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(`Konuşma dışa aktarılamadı: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
     }
   };
 
@@ -855,10 +1041,24 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
 
   // Handle provider config update
   const handleProviderConfigUpdate = (provider: string, config: any) => {
-    setProviderConfigs((prev) => ({
-      ...prev,
-      [provider]: config,
-    }));
+    // Update state immediately
+    setProviderConfigs((prev) => {
+      const updated = {
+        ...prev,
+        [provider]: config,
+      };
+      
+      // Also save to localStorage immediately to ensure persistence
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('ai-chat-provider-configs', JSON.stringify(updated));
+        } catch (error) {
+          console.error('Error saving provider configs to localStorage:', error);
+        }
+      }
+      
+      return updated;
+    });
     
     // Fetch models after config is updated
     if (config?.apiKey) {
@@ -891,7 +1091,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
             setCurrentChatId(null);
             setMessages([]);
             setInputValue('');
-            document.title = 'AI Chat Assistant';
+            document.title = 'AI Sohbet Asistanı';
           }
         }}
         currentChatId={currentChatId}
@@ -900,7 +1100,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
         onSearchClick={() => setShowSearchModal(true)}
       />
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center gap-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-subtle)] px-4 py-2">
           <button
@@ -940,7 +1140,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                   ? `${availableProviders[selectedProvider]?.name || selectedProvider} - ${selectedModel}`
                   : selectedProvider
                   ? `${availableProviders[selectedProvider]?.name || selectedProvider}`
-                  : 'AI Chat Assistant'}
+                  : 'AI Sohbet Asistanı'}
               </span>
               {(selectedProvider && availableProviders[selectedProvider]) && (
                 <svg
@@ -983,7 +1183,7 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                           selectedModel === model
-                            ? 'bg-[var(--accent-color)] text-white'
+                            ? 'bg-[var(--selected-bg)] text-[var(--selected-text)] font-medium'
                             : 'text-[var(--text-primary)] hover:bg-[var(--hover-bg)]'
                         }`}
                       >
@@ -1038,29 +1238,97 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
             </button>
-            <button
-              onClick={handleNewChat}
-              className="rounded-lg p-2 hover:bg-[var(--hover-bg)] transition-colors cursor-pointer"
-              title="Yeni Sohbet"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </button>
+            {currentChatId && (
+              <div className="relative group" ref={exportDropdownRef}>
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="rounded-lg p-2 hover:bg-[var(--hover-bg)] transition-colors cursor-pointer"
+                  title="Konuşmayı Dışa Aktar"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </button>
+                {/* Export Dropdown */}
+                {showExportDropdown && (
+                  <>
+                    {/* Overlay to close dropdown on outside click */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowExportDropdown(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-2xl z-50">
+                      <div className="p-2">
+                        <button
+                          onClick={() => {
+                            handleExport('pdf');
+                            setShowExportDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors cursor-pointer flex items-center gap-2"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                          PDF Olarak Dışa Aktar
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleExport('markdown');
+                            setShowExportDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors cursor-pointer flex items-center gap-2"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                          Markdown Olarak Dışa Aktar
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleExport('json');
+                            setShowExportDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors cursor-pointer flex items-center gap-2"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                          JSON Olarak Dışa Aktar
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto bg-[var(--bg-primary)]">
+        <div className="flex-1 overflow-y-auto bg-[var(--bg-primary)] px-2 sm:px-0">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center px-4">
               <div className="text-center max-w-2xl w-full">

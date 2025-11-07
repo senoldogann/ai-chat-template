@@ -46,7 +46,7 @@ function CodeBlock({ children, ...props }: any) {
   };
 
   return (
-    <div className="relative group my-4 max-w-full overflow-hidden">
+    <div className="relative group my-2 sm:my-4 max-w-full overflow-hidden">
       {/* Code block container */}
       <div className={`relative rounded-lg overflow-hidden border ${
         currentTheme === 'dark' 
@@ -54,7 +54,7 @@ function CodeBlock({ children, ...props }: any) {
           : 'bg-[#f6f6f6] border-[#e5e5e5]'
       }`}>
         {/* Language label and copy button */}
-        <div className={`flex items-center justify-between px-4 py-2 border-b ${
+        <div className={`flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 border-b ${
           currentTheme === 'dark' 
             ? 'bg-[#252526] border-[#3e3e3e]' 
             : 'bg-[#f0f0f0] border-[#e5e5e5]'
@@ -112,7 +112,7 @@ function CodeBlock({ children, ...props }: any) {
           </button>
         </div>
         {/* Code content - render pre element with children (code element) */}
-        <pre className={`m-0 p-4 overflow-x-auto text-sm font-mono leading-relaxed ${
+        <pre className={`m-0 p-2 sm:p-4 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed ${
           currentTheme === 'dark' 
             ? 'text-[#d4d4d4]' 
             : 'text-[#1e1e1e]'
@@ -180,11 +180,11 @@ export default function MessageBubble({ message, index, onEdit }: MessageBubbleP
   };
 
   return (
-    <div className="group w-full py-2 bg-[var(--bg-primary)] transition-colors">
-      <div className={`mx-auto flex max-w-3xl ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className="group w-full py-2 px-2 sm:py-2 sm:px-0 bg-[var(--bg-primary)] transition-colors">
+      <div className={`mx-auto flex max-w-3xl px-2 sm:px-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Content */}
-        <div className={`${isUser ? 'flex flex-col items-end ' : 'flex flex-col items-start'}`}>
-          <div className={`${isUser ? `bg-[var(--user-message-bg)] rounded-lg inline-block px-2 py-1 max-w-[70%]` : 'max-w-full overflow-x-hidden'} prose prose-sm ${isUser ? 'max-w-[70%]' : 'max-w-full'} prose-p:my-0 prose-p:leading-[1.75] prose-p:text-[15px] ${isUser ? '' : 'prose-p:break-words'} prose-ul:my-0 prose-ol:my-0 prose-li:my-0 prose-li:leading-[1.7] prose-headings:my-0 prose-headings:font-bold prose-headings:leading-tight prose-headings:break-words prose-h1:text-[28px] prose-h1:font-extrabold prose-h2:text-[22px] prose-h2:font-bold prose-h3:text-[18px] prose-h3:font-semibold prose-h4:text-[16px] prose-h4:font-semibold prose-blockquote:my-0 prose-blockquote:pl-5 prose-blockquote:border-l-[3px] prose-blockquote:italic prose-ul:list-disc prose-ol:list-decimal prose-ul:pl-7 prose-ol:pl-7 prose-li:pl-2 prose-p:first:my-0 prose-p:last:my-0 prose-strong:font-semibold prose-strong:text-inherit ${isUser ? '' : 'prose-strong:break-words'} prose-a:text-[var(--accent-color)] prose-a:no-underline hover:prose-a:underline prose-a:break-all prose-code:break-words prose-pre:overflow-x-auto prose-pre:max-w-full ${
+        <div className={`w-full ${isUser ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}>
+          <div className={`w-full ${isUser ? `bg-[var(--user-message-bg)] rounded-lg inline-block px-3 py-2 sm:px-4 sm:py-2.5 max-w-[85%] sm:max-w-[70%]` : 'max-w-full overflow-x-hidden'} prose prose-sm ${isUser ? 'max-w-[85%] sm:max-w-[70%]' : 'max-w-full'} prose-p:my-0 prose-p:leading-[1.75] prose-p:text-[14px] sm:prose-p:text-[15px] ${isUser ? '' : 'prose-p:break-words'} prose-ul:my-0 prose-ol:my-0 prose-li:my-0 prose-li:leading-[1.7] prose-headings:my-0 prose-headings:font-bold prose-headings:leading-tight prose-headings:break-words prose-h1:text-[22px] sm:prose-h1:text-[28px] prose-h1:font-extrabold prose-h2:text-[18px] sm:prose-h2:text-[22px] prose-h2:font-bold prose-h3:text-[16px] sm:prose-h3:text-[18px] prose-h3:font-semibold prose-h4:text-[14px] sm:prose-h4:text-[16px] prose-h4:font-semibold prose-blockquote:my-0 prose-blockquote:pl-3 sm:prose-blockquote:pl-5 prose-blockquote:border-l-[3px] prose-blockquote:italic prose-ul:list-disc prose-ol:list-decimal prose-ul:pl-5 sm:prose-ul:pl-7 prose-ol:pl-5 sm:prose-ol:pl-7 prose-li:pl-1 sm:prose-li:pl-2 prose-p:first:my-0 prose-p:last:my-0 prose-strong:font-semibold prose-strong:text-inherit ${isUser ? '' : 'prose-strong:break-words'} prose-u:no-underline prose-a:text-[var(--accent-color)] prose-a:no-underline hover:prose-a:underline prose-a:break-all prose-code:break-words prose-pre:overflow-x-auto prose-pre:max-w-full ${
             currentTheme === 'dark' 
               ? 'prose-invert prose-code:text-[#ececf1] prose-p:text-[#ececf1] prose-strong:text-[#ececf1] prose-headings:text-[#ececf1] prose-li:text-[#ececf1] prose-blockquote:text-[#d1d5db] prose-blockquote:border-[#4b5563]' 
               : 'prose-code:text-[#353740] prose-p:text-[#353740] prose-strong:text-[#353740] prose-headings:text-[#353740] prose-li:text-[#353740] prose-blockquote:text-[#4b5563] prose-blockquote:border-[#d1d5db]'
@@ -272,6 +272,14 @@ export default function MessageBubble({ message, index, onEdit }: MessageBubbleP
                           {children}
                         </strong>
                       ),
+                      u: ({ node, children, ...props }: any) => (
+                        <span className="no-underline" {...props}>
+                          {children}
+                        </span>
+                      ),
+                      hr: ({ node, ...props }: any) => (
+                        <div className="hidden" {...props} />
+                      ),
                       a: ({ node, children, ...props }: any) => (
                         <a 
                           className="text-[var(--accent-color)] no-underline hover:underline transition-colors" 
@@ -303,6 +311,73 @@ export default function MessageBubble({ message, index, onEdit }: MessageBubbleP
                           />
                         );
                       },
+                      table: ({ node, children, ...props }: any) => (
+                        <div className="overflow-x-auto my-4">
+                          <table 
+                            className={`min-w-full border-collapse ${
+                              currentTheme === 'dark'
+                                ? 'border-[#3e3e3e]'
+                                : 'border-[#e5e5e5]'
+                            }`}
+                            {...props}
+                          >
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      thead: ({ node, children, ...props }: any) => (
+                        <thead 
+                          className={
+                            currentTheme === 'dark'
+                              ? 'bg-[#2d2d2d]'
+                              : 'bg-[#f0f0f0]'
+                          }
+                          {...props}
+                        >
+                          {children}
+                        </thead>
+                      ),
+                      tbody: ({ node, children, ...props }: any) => (
+                        <tbody {...props}>
+                          {children}
+                        </tbody>
+                      ),
+                      tr: ({ node, children, ...props }: any) => (
+                        <tr 
+                          className={`border-b ${
+                            currentTheme === 'dark'
+                              ? 'border-[#3e3e3e] hover:bg-[#2d2d2d]'
+                              : 'border-[#e5e5e5] hover:bg-[#f9f9f9]'
+                          } transition-colors`}
+                          {...props}
+                        >
+                          {children}
+                        </tr>
+                      ),
+                      th: ({ node, children, ...props }: any) => (
+                        <th 
+                          className={`px-4 py-2 text-left font-semibold ${
+                            currentTheme === 'dark'
+                              ? 'text-[#ececf1] border-[#3e3e3e]'
+                              : 'text-[#353740] border-[#e5e5e5]'
+                          } border-r last:border-r-0`}
+                          {...props}
+                        >
+                          {children}
+                        </th>
+                      ),
+                      td: ({ node, children, ...props }: any) => (
+                        <td 
+                          className={`px-4 py-2 ${
+                            currentTheme === 'dark'
+                              ? 'text-[#ececf1] border-[#3e3e3e]'
+                              : 'text-[#353740] border-[#e5e5e5]'
+                          } border-r last:border-r-0`}
+                          {...props}
+                        >
+                          {children}
+                        </td>
+                      ),
                     }}
                   >
                     {getDisplayContent()}
@@ -393,6 +468,14 @@ export default function MessageBubble({ message, index, onEdit }: MessageBubbleP
                       {children}
                     </strong>
                   ),
+                  u: ({ node, children, ...props }: any) => (
+                    <span className="no-underline" {...props}>
+                      {children}
+                    </span>
+                  ),
+                  hr: ({ node, ...props }: any) => (
+                    <div className="hidden" {...props} />
+                  ),
                   a: ({ node, children, ...props }: any) => (
                     <a 
                       className="text-[var(--accent-color)] no-underline hover:underline transition-colors" 
@@ -401,14 +484,95 @@ export default function MessageBubble({ message, index, onEdit }: MessageBubbleP
                       {children}
                     </a>
                   ),
-                  img: ({ node, src, alt, ...props }: any) => (
-                    <img
-                      src={src}
-                      alt={alt || 'Image'}
-                      className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity my-2"
-                      onClick={() => handleImageClick(src || '')}
+                  img: ({ node, src, alt, ...props }: any) => {
+                    // If src is a placeholder, try to find the actual data URL from message content
+                    let imageSrc = src;
+                    if (src === 'image-data-hidden' || src === 'image-data' || src === 'image-uploaded') {
+                      // Find the actual image data URL from message content
+                      const imagePattern = /!\[([^\]]*)\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
+                      const matches = [...message.content.matchAll(imagePattern)];
+                      const match = matches.find(m => m[1] === alt || m[1] === (alt || ''));
+                      if (match) {
+                        imageSrc = match[2];
+                      }
+                    }
+                    
+                    return (
+                      <img
+                        src={imageSrc}
+                        alt={alt || 'Image'}
+                        className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity my-2"
+                        onClick={() => handleImageClick(imageSrc || '')}
+                        {...props}
+                      />
+                    );
+                  },
+                  table: ({ node, children, ...props }: any) => (
+                    <div className="overflow-x-auto my-4">
+                      <table 
+                        className={`min-w-full border-collapse ${
+                          currentTheme === 'dark'
+                            ? 'border-[#3e3e3e]'
+                            : 'border-[#e5e5e5]'
+                        }`}
+                        {...props}
+                      >
+                        {children}
+                      </table>
+                    </div>
+                  ),
+                  thead: ({ node, children, ...props }: any) => (
+                    <thead 
+                      className={
+                        currentTheme === 'dark'
+                          ? 'bg-[#2d2d2d]'
+                          : 'bg-[#f0f0f0]'
+                      }
                       {...props}
-                    />
+                    >
+                      {children}
+                    </thead>
+                  ),
+                  tbody: ({ node, children, ...props }: any) => (
+                    <tbody {...props}>
+                      {children}
+                    </tbody>
+                  ),
+                  tr: ({ node, children, ...props }: any) => (
+                    <tr 
+                      className={`border-b ${
+                        currentTheme === 'dark'
+                          ? 'border-[#3e3e3e] hover:bg-[#2d2d2d]'
+                          : 'border-[#e5e5e5] hover:bg-[#f9f9f9]'
+                      } transition-colors`}
+                      {...props}
+                    >
+                      {children}
+                    </tr>
+                  ),
+                  th: ({ node, children, ...props }: any) => (
+                    <th 
+                      className={`px-4 py-2 text-left font-semibold ${
+                        currentTheme === 'dark'
+                          ? 'text-[#ececf1] border-[#3e3e3e]'
+                          : 'text-[#353740] border-[#e5e5e5]'
+                      } border-r last:border-r-0`}
+                      {...props}
+                    >
+                      {children}
+                    </th>
+                  ),
+                  td: ({ node, children, ...props }: any) => (
+                    <td 
+                      className={`px-4 py-2 ${
+                        currentTheme === 'dark'
+                          ? 'text-[#ececf1] border-[#3e3e3e]'
+                          : 'text-[#353740] border-[#e5e5e5]'
+                      } border-r last:border-r-0`}
+                      {...props}
+                    >
+                      {children}
+                    </td>
                   ),
                 }}
               >

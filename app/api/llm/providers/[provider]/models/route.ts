@@ -117,11 +117,18 @@ async function fetchModelsFromProvider(
       }
       
       case 'ollama': {
-        // Ollama API endpoint: /api/tags for local, /api/tags for cloud (same endpoint)
+        // Ollama API endpoint: /api/tags for local, /tags for cloud
         // For cloud, baseURL should be https://ollama.com/api
         // For local, baseURL should be http://localhost:11434
         const ollamaBaseURL = baseURL || (config.apiKey ? 'https://ollama.com/api' : 'http://localhost:11434');
-        const response = await fetch(`${ollamaBaseURL}/api/tags`, {
+        
+        // Determine the correct endpoint based on baseURL
+        // If baseURL includes 'ollama.com', it's cloud and endpoint is /tags
+        // If baseURL is localhost, it's local and endpoint is /api/tags
+        const isCloud = ollamaBaseURL.includes('ollama.com');
+        const endpoint = isCloud ? '/tags' : '/api/tags';
+        
+        const response = await fetch(`${ollamaBaseURL}${endpoint}`, {
           headers: config.apiKey ? {
             'Authorization': `Bearer ${config.apiKey}`,
           } : undefined,

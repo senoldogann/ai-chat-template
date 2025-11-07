@@ -112,13 +112,30 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
         }
       }
       
+      // If user entered a new API key (not masked), use it
+      if (formData.apiKey && formData.apiKey !== '••••••••' && formData.apiKey.trim() !== '') {
+        actualApiKey = formData.apiKey.trim();
+      }
+      
+      // For Ollama: if API key is provided, use cloud URL; otherwise use local URL
+      let baseURL: string | undefined = undefined;
+      if (provider === 'ollama') {
+        if (actualApiKey && actualApiKey !== '••••••••' && actualApiKey.trim() !== '') {
+          // Cloud mode - use cloud URL
+          baseURL = 'https://ollama.com/api';
+        } else {
+          // Local mode - use local URL
+          baseURL = 'http://localhost:11434';
+        }
+      }
+      
       // Update config with actual values (don't send to server, just update local state)
       const updatedConfig = {
         apiKey: actualApiKey && actualApiKey !== '••••••••' && actualApiKey.trim() !== '' ? actualApiKey : undefined,
         model: formData.model && formData.model.trim() !== '' ? formData.model : undefined,
         temperature: formData.temperature ? parseFloat(formData.temperature) : undefined,
         maxTokens: formData.maxTokens ? parseInt(formData.maxTokens, 10) : undefined,
-        baseURL: undefined, // Can be added later if needed
+        baseURL: baseURL,
       };
 
       // Validate that API key is provided (except for Ollama local)
@@ -126,6 +143,21 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
         alert('Please provide an API key');
         setSaving(false);
         return;
+      }
+      
+      // Save to localStorage immediately to persist across page refreshes
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem('ai-chat-provider-configs');
+          const allConfigs = saved ? JSON.parse(saved) : {};
+          allConfigs[provider] = {
+            ...allConfigs[provider],
+            ...updatedConfig,
+          };
+          localStorage.setItem('ai-chat-provider-configs', JSON.stringify(allConfigs));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
       }
       
       alert('Configuration saved! Your settings will persist across page refreshes.');

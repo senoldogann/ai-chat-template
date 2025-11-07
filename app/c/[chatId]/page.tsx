@@ -2,11 +2,11 @@
 
 import Chat from '@/app/components/Chat';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 export default function ChatPage() {
   const params = useParams();
-  const chatId = params?.chatId as string;
+  const chatId = useMemo(() => params?.chatId as string, [params?.chatId]);
   const [mounted, setMounted] = useState(false);
 
   // Use startTransition to avoid calling setState synchronously in effect

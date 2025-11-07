@@ -4,17 +4,20 @@
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f7f7f8;
-  --bg-sidebar: #f5f5f5; /* Slightly darker than bg-primary for sidebar */
+  --bg-sidebar: #ffffff; /* White for sidebar in light mode */
   --text-primary: #353740;
   --text-secondary: #6e6e80;
   --accent-color: #10a37f;
   --accent-hover: #0d8f6e;
   --border-color: #e5e5e6;
   --border-subtle: rgba(0, 0, 0, 0.05); /* Very subtle border - like in image */
+  --sidebar-border: rgba(0, 0, 0, 0.08); /* Subtle border for sidebar right edge */
   --user-message-bg: #f0f0f0; /* Slightly darker for user message in light mode */
   --ai-message-bg: #f7f7f8;
   --input-bg: #ffffff; /* Same as bg-primary */
   --hover-bg: #f0f0f0;
+  --selected-bg: #e8f5e9; /* Light green background for selected items in light mode */
+  --selected-text: #2e7d32; /* Dark green text for selected items in light mode */
   --shadow: rgba(0, 0, 0, 0.1);
 }
 
@@ -29,10 +32,13 @@
   --accent-hover: #0d8f6e;
   --border-color: #3f3f3f; /* Darker border color for dark mode */
   --border-subtle: rgba(255, 255, 255, 0.1); /* Very subtle border - like in image */
+  --sidebar-border: rgba(255, 255, 255, 0.1); /* Subtle border for sidebar right edge in dark mode */
   --user-message-bg: #363636; /* Slightly lighter gray for user message bubble in dark mode */
   --ai-message-bg: #2f2f2f; /* Slightly lighter than chat area */
   --input-bg: #212121; /* Dark black for input area background */
   --hover-bg: #2f3034;
+  --selected-bg: #1e3a20; /* Dark green background for selected items in dark mode */
+  --selected-text: #81c784; /* Light green text for selected items in dark mode */
   --shadow: rgba(0, 0, 0, 0.3);
 }
 
