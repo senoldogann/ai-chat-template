@@ -390,17 +390,17 @@ If you have any questions or need help, please:
 
 ## 🗺️ Roadmap
 
-Gelecekte eklenmesi planlanan özellikler:
+Features planned for future releases:
 
-- [ ] **Voice input/output support** - Sesli mesaj gönderme ve alma
-- [ ] **Multi-language support** - UI ve AI için çoklu dil desteği
-- [ ] **Plugin system for custom tools** - Özel tool'lar için plugin sistemi
-- [ ] **Export conversations** - Konuşmaları PDF, Markdown, JSON olarak dışa aktarma
-- [ ] **Collaborative chat rooms** - Birden fazla kullanıcının aynı chat'te çalışabilmesi
-- [ ] **Custom model fine-tuning** - Kendi veri setinizle model eğitme
-- [ ] **Advanced analytics dashboard** - Kullanım istatistikleri ve analitik
+- [ ] **Voice input/output support** - Send and receive voice messages
+- [ ] **Multi-language support** - UI and AI support for multiple languages
+- [ ] **Plugin system for custom tools** - Plugin system for custom tools
+- [ ] **Export conversations** - Export conversations as PDF, Markdown, or JSON
+- [ ] **Collaborative chat rooms** - Multiple users working in the same chat
+- [ ] **Custom model fine-tuning** - Train models with your own datasets
+- [ ] **Advanced analytics dashboard** - Usage statistics and analytics
 
-Detaylı bilgi için [Roadmap Dokümantasyonu](docs/ROADMAP.md) sayfasına bakın.
+For detailed information, see the [Roadmap Documentation](docs/ROADMAP.md) page.
 
 ---
 

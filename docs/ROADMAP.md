@@ -1,85 +1,85 @@
-# 🗺️ Roadmap - Gelecek Özellikler
+# 🗺️ Roadmap - Future Features
 
-Bu doküman, projenin gelecekte eklenmesi planlanan özelliklerini açıklar.
+This document describes features planned for future releases of the project.
 
-## 📋 Planlanan Özellikler
+## 📋 Planned Features
 
-### 1. 🎤 Voice Input/Output Support (Sesli Giriş/Çıkış Desteği)
+### 1. 🎤 Voice Input/Output Support
 
-**Ne İçin:**
-- Kullanıcıların sesli mesaj gönderebilmesi
-- AI'ın sesli yanıt verebilmesi
-- Gerçek zamanlı ses tanıma (Speech-to-Text)
-- Ses sentezi (Text-to-Speech)
+**Purpose:**
+- Allow users to send voice messages
+- Enable AI to respond with voice
+- Real-time speech recognition (Speech-to-Text)
+- Text-to-Speech synthesis
 
-**Nasıl Çalışır:**
-- **Voice Input**: Mikrofon kaydı → Web Speech API veya backend STT servisi → Metin
-- **Voice Output**: AI yanıtı → TTS servisi → Ses dosyası → Tarayıcıda çalma
+**How It Works:**
+- **Voice Input**: Microphone recording → Web Speech API or backend STT service → Text
+- **Voice Output**: AI response → TTS service → Audio file → Play in browser
 
-**Teknik Detaylar:**
+**Technical Details:**
 - Frontend: Web Speech API (SpeechRecognition, SpeechSynthesis)
-- Backend: OpenAI Whisper API, Google Speech-to-Text, veya benzeri
-- TTS: OpenAI TTS, Google Text-to-Speech, veya benzeri
+- Backend: OpenAI Whisper API, Google Speech-to-Text, or similar
+- TTS: OpenAI TTS, Google Text-to-Speech, or similar
 - Format: WebM, MP3, WAV
 
-**Kullanım Senaryoları:**
-- Mobil cihazlarda hızlı mesaj gönderme
-- Erişilebilirlik (görme engelliler için)
-- Çoklu görev yaparken sesli etkileşim
-- Dil öğrenme uygulamaları
+**Use Cases:**
+- Quick message sending on mobile devices
+- Accessibility (for visually impaired users)
+- Voice interaction while multitasking
+- Language learning applications
 
 ---
 
-### 2. 🌍 Multi-language Support (Çoklu Dil Desteği)
+### 2. 🌍 Multi-language Support
 
-**Ne İçin:**
-- UI'ın farklı dillerde görüntülenmesi
-- Kullanıcıların tercih ettikleri dili seçebilmesi
-- AI'ın farklı dillerde yanıt verebilmesi
+**Purpose:**
+- Display UI in different languages
+- Allow users to select their preferred language
+- Enable AI to respond in different languages
 
-**Nasıl Çalışır:**
-- **i18n (Internationalization)**: UI metinlerinin çevrilmesi
-- **L10n (Localization)**: Tarih, saat, sayı formatlarının yerelleştirilmesi
-- **AI Multi-language**: LLM'lerin çoklu dil desteği (çoğu model zaten destekliyor)
+**How It Works:**
+- **i18n (Internationalization)**: Translation of UI texts
+- **L10n (Localization)**: Localization of date, time, and number formats
+- **AI Multi-language**: LLM multi-language support (most models already support this)
 
-**Teknik Detaylar:**
-- Frontend: `next-intl` veya `react-i18next` kütüphanesi
-- Dil dosyaları: JSON veya YAML formatında
-- Desteklenen diller: Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, vb.
-- Varsayılan dil: Tarayıcı diline göre otomatik tespit
+**Technical Details:**
+- Frontend: `next-intl` or `react-i18next` library
+- Language files: JSON or YAML format
+- Supported languages: Turkish, English, German, French, Spanish, etc.
+- Default language: Auto-detect based on browser language
 
-**Kullanım Senaryoları:**
-- Global kullanıcı tabanı
-- Farklı ülkelerden kullanıcılar
-- Çok dilli ekip çalışması
+**Use Cases:**
+- Global user base
+- Users from different countries
+- Multilingual team collaboration
 
 ---
 
-### 3. 🔌 Plugin System for Custom Tools (Özel Tools için Plugin Sistemi)
+### 3. 🔌 Plugin System for Custom Tools
 
-**Ne İçin:**
-- Kullanıcıların kendi tool'larını ekleyebilmesi
-- Üçüncü parti tool entegrasyonları
-- Modüler ve genişletilebilir tool sistemi
+**Purpose:**
+- Allow users to add their own tools
+- Third-party tool integrations
+- Modular and extensible tool system
 
-**Nasıl Çalışır:**
-- **Plugin Interface**: Standart tool interface'i
-- **Dynamic Loading**: Runtime'da tool'ların yüklenmesi
-- **Tool Registry**: Tool'ların kayıt edilmesi ve yönetilmesi
+**How It Works:**
+- **Plugin Interface**: Standard tool interface
+- **Dynamic Loading**: Load tools at runtime
+- **Tool Registry**: Register and manage tools
 
-**Teknik Detaylar:**
+**Technical Details:**
 - Tool Interface: `{ name, description, execute, parameters }`
-- Plugin Format: JavaScript/TypeScript modülleri
-- Tool Registry: Database veya file system'de saklama
-- Security: Sandboxing ve izin sistemi
+- Plugin Format: JavaScript/TypeScript modules
+- Tool Registry: Store in database or file system
+- Security: Sandboxing and permission system
 
-**Kullanım Senaryoları:**
-- Özel API entegrasyonları
-- Şirket içi tool'lar
-- Topluluk tarafından geliştirilen tool'lar
-- Özel iş mantığı tool'ları
+**Use Cases:**
+- Custom API integrations
+- Internal company tools
+- Community-developed tools
+- Custom business logic tools
 
-**Örnek Plugin:**
+**Example Plugin:**
 ```typescript
 // plugins/weather-tool.ts
 export default {
@@ -100,31 +100,31 @@ export default {
 
 ---
 
-### 4. 📄 Export Conversations (Konuşmaları Dışa Aktarma)
+### 4. 📄 Export Conversations
 
-**Ne İçin:**
-- Konuşmaların PDF, Markdown veya JSON formatında indirilmesi
-- Yedekleme ve arşivleme
-- Paylaşım ve raporlama
+**Purpose:**
+- Download conversations as PDF, Markdown, or JSON
+- Backup and archiving
+- Sharing and reporting
 
-**Nasıl Çalışır:**
-- **PDF Export**: HTML → PDF dönüşümü (puppeteer, jsPDF)
-- **Markdown Export**: Mesajların Markdown formatına çevrilmesi
-- **JSON Export**: Veritabanından ham veri çıkarımı
+**How It Works:**
+- **PDF Export**: HTML → PDF conversion (puppeteer, jsPDF)
+- **Markdown Export**: Convert messages to Markdown format
+- **JSON Export**: Extract raw data from database
 
-**Teknik Detaylar:**
-- PDF: `puppeteer` veya `jsPDF` kütüphanesi
-- Markdown: Mesajların Markdown formatına çevrilmesi
-- JSON: Prisma'dan veri çıkarımı ve formatlama
-- Formatlar: PDF, Markdown (.md), JSON (.json)
+**Technical Details:**
+- PDF: `puppeteer` or `jsPDF` library
+- Markdown: Convert messages to Markdown format
+- JSON: Extract data from Prisma and format
+- Formats: PDF, Markdown (.md), JSON (.json)
 
-**Kullanım Senaryoları:**
-- Konuşma geçmişini yedekleme
-- Raporlama ve analiz
-- Paylaşım ve dokümantasyon
-- Yasal uyumluluk (veri saklama)
+**Use Cases:**
+- Backup conversation history
+- Reporting and analysis
+- Sharing and documentation
+- Legal compliance (data retention)
 
-**Örnek Export:**
+**Example Export:**
 ```markdown
 # Chat: AI Conversation
 
@@ -132,153 +132,152 @@ export default {
 **Model:** GPT-4o
 
 ## User
-Merhaba, nasılsın?
+Hello, how are you?
 
 ## Assistant
-Merhaba! Ben bir AI asistanıyım ve iyiyim, teşekkür ederim. Size nasıl yardımcı olabilirim?
+Hello! I'm an AI assistant and I'm doing well, thank you. How can I help you?
 ```
 
 ---
 
-### 5. 👥 Collaborative Chat Rooms (İşbirlikçi Chat Odaları)
+### 5. 👥 Collaborative Chat Rooms
 
-**Ne İçin:**
-- Birden fazla kullanıcının aynı chat'te çalışabilmesi
-- Gerçek zamanlı işbirliği
-- Ekip çalışması ve paylaşım
+**Purpose:**
+- Multiple users working in the same chat
+- Real-time collaboration
+- Team collaboration and sharing
 
-**Nasıl Çalışır:**
-- **Real-time Sync**: WebSocket veya Server-Sent Events
-- **User Management**: Chat'e kullanıcı ekleme/çıkarma
-- **Permissions**: Okuma/yazma izinleri
-- **Presence**: Kullanıcıların online/offline durumu
+**How It Works:**
+- **Real-time Sync**: WebSocket or Server-Sent Events
+- **User Management**: Add/remove users from chat
+- **Permissions**: Read/write permissions
+- **Presence**: User online/offline status
 
-**Teknik Detaylar:**
-- Real-time: WebSocket (Socket.io) veya SSE
-- Database: Chat'lerde `users` ilişkisi
-- Permissions: `owner`, `editor`, `viewer` rolleri
-- Presence: Redis veya in-memory store
+**Technical Details:**
+- Real-time: WebSocket (Socket.io) or SSE
+- Database: `users` relationship in chats
+- Permissions: `owner`, `editor`, `viewer` roles
+- Presence: Redis or in-memory store
 
-**Kullanım Senaryoları:**
-- Ekip projeleri
-- Müşteri desteği
-- Eğitim ve öğretim
-- Brainstorming oturumları
+**Use Cases:**
+- Team projects
+- Customer support
+- Education and training
+- Brainstorming sessions
 
-**Özellikler:**
-- Gerçek zamanlı mesaj senkronizasyonu
-- Kullanıcı avatarları ve durumları
-- Mesaj edit/delete geçmişi
-- @mention bildirimleri
+**Features:**
+- Real-time message synchronization
+- User avatars and statuses
+- Message edit/delete history
+- @mention notifications
 
 ---
 
-### 6. 🎓 Custom Model Fine-tuning Integration (Özel Model Fine-tuning Entegrasyonu)
+### 6. 🎓 Custom Model Fine-tuning Integration
 
-**Ne İçin:**
-- Kullanıcıların kendi veri setleriyle model eğitebilmesi
-- Özel kullanım durumları için optimize edilmiş modeller
-- Domain-specific model'ler
+**Purpose:**
+- Train models with your own datasets
+- Optimized models for specific use cases
+- Domain-specific models
 
-**Nasıl Çalışır:**
-- **Data Upload**: Eğitim veri setlerinin yüklenmesi
-- **Fine-tuning API**: OpenAI, Anthropic, veya benzeri fine-tuning API'leri
-- **Model Management**: Eğitilmiş model'lerin yönetilmesi
-- **Model Selection**: UI'dan özel model seçimi
+**How It Works:**
+- **Data Upload**: Upload training datasets
+- **Fine-tuning API**: OpenAI, Anthropic, or similar fine-tuning APIs
+- **Model Management**: Manage trained models
+- **Model Selection**: Select custom models from UI
 
-**Teknik Detaylar:**
+**Technical Details:**
 - Fine-tuning API: OpenAI Fine-tuning API, Anthropic Custom Models
 - Data Format: JSONL (JSON Lines)
-- Training: Backend'de fine-tuning job'ları
-- Model Storage: Model ID'lerinin database'de saklanması
+- Training: Fine-tuning jobs on backend
+- Model Storage: Store model IDs in database
 
-**Kullanım Senaryoları:**
-- Şirket içi bilgi tabanı
-- Özel terminoloji ve jargon
-- Marka sesi ve tonu
-- Domain-specific bilgi (hukuk, tıp, vb.)
+**Use Cases:**
+- Internal company knowledge base
+- Custom terminology and jargon
+- Brand voice and tone
+- Domain-specific knowledge (law, medicine, etc.)
 
-**Süreç:**
-1. Veri seti hazırlama (soru-cevap çiftleri)
-2. Fine-tuning job başlatma
-3. Model eğitimi (genellikle saatler sürer)
-4. Model test etme
-5. Production'a alma
+**Process:**
+1. Prepare dataset (question-answer pairs)
+2. Start fine-tuning job
+3. Model training (usually takes hours)
+4. Test model
+5. Deploy to production
 
 ---
 
-### 7. 📊 Advanced Analytics Dashboard (Gelişmiş Analitik Dashboard)
+### 7. 📊 Advanced Analytics Dashboard
 
-**Ne İçin:**
-- Kullanıcı aktivite istatistikleri
-- Model performans metrikleri
-- Kullanım analizi ve raporlama
-- Cost tracking (API maliyetleri)
+**Purpose:**
+- User activity statistics
+- Model performance metrics
+- Usage analysis and reporting
+- Cost tracking (API costs)
 
-**Nasıl Çalışır:**
-- **Data Collection**: Kullanıcı aktivitelerinin kaydedilmesi
-- **Analytics Engine**: Veri analizi ve metrik hesaplama
-- **Dashboard UI**: Grafikler ve tablolar
-- **Reports**: Otomatik raporlar
+**How It Works:**
+- **Data Collection**: Record user activities
+- **Analytics Engine**: Data analysis and metric calculation
+- **Dashboard UI**: Charts and tables
+- **Reports**: Automated reports
 
-**Teknik Detaylar:**
-- Database: Analytics verilerinin saklanması
-- Charts: Chart.js, Recharts, veya D3.js
-- Metrics: Token kullanımı, mesaj sayısı, model performansı
-- Export: CSV, PDF raporları
+**Technical Details:**
+- Database: Store analytics data
+- Charts: Chart.js, Recharts, or D3.js
+- Metrics: Token usage, message count, model performance
+- Export: CSV, PDF reports
 
-**Metrikler:**
-- **Kullanıcı Metrikleri:**
-  - Toplam mesaj sayısı
-  - Aktif kullanıcı sayısı
-  - Ortalama mesaj uzunluğu
-  - En çok kullanılan model'ler
+**Metrics:**
+- **User Metrics:**
+  - Total message count
+  - Active user count
+  - Average message length
+  - Most used models
   
-- **Model Metrikleri:**
-  - Token kullanımı (input/output)
-  - API maliyetleri
-  - Yanıt süreleri
-  - Hata oranları
+- **Model Metrics:**
+  - Token usage (input/output)
+  - API costs
+  - Response times
+  - Error rates
   
-- **Tool Metrikleri:**
-  - En çok kullanılan tool'lar
-  - Tool başarı oranları
-  - Tool kullanım süreleri
+- **Tool Metrics:**
+  - Most used tools
+  - Tool success rates
+  - Tool usage times
 
-**Kullanım Senaryoları:**
-- API maliyetlerini takip etme
-- Kullanıcı davranışlarını analiz etme
-- Model performansını optimize etme
-- İş zekası ve raporlama
-
----
-
-## 🎯 Öncelik Sırası
-
-1. **Export Conversations** - En kolay ve hızlı implement edilebilir
-2. **Multi-language Support** - Kullanıcı deneyimini önemli ölçüde iyileştirir
-3. **Plugin System** - Tool sistemini genişletilebilir yapar
-4. **Voice Input/Output** - Modern ve kullanışlı özellik
-5. **Collaborative Chat Rooms** - Karmaşık ama değerli
-6. **Analytics Dashboard** - İş zekası için önemli
-7. **Custom Model Fine-tuning** - En karmaşık, uzmanlık gerektirir
-
-## 📝 Notlar
-
-- Bu özellikler şu anda **planlama aşamasında**dır
-- Her özellik için detaylı teknik dokümantasyon ve implementasyon planı hazırlanacaktır
-- Topluluk geri bildirimlerine göre öncelikler değişebilir
-- Her özellik için ayrı issue'lar açılacak ve PR'lar beklenmektedir
-
-## 🤝 Katkıda Bulunma
-
-Bu özelliklerden herhangi birini implement etmek isterseniz:
-1. İlgili issue'yu açın veya mevcut issue'ya yorum yapın
-2. Implementation planınızı paylaşın
-3. PR açmadan önce diğer katkıda bulunanlarla tartışın
-4. Detaylı dokümantasyon ve testler ekleyin
+**Use Cases:**
+- Track API costs
+- Analyze user behavior
+- Optimize model performance
+- Business intelligence and reporting
 
 ---
 
-**Son Güncelleme:** 2025-01-07
+## 🎯 Priority Order
 
+1. **Export Conversations** - Easiest and quickest to implement
+2. **Multi-language Support** - Significantly improves user experience
+3. **Plugin System** - Makes tool system extensible
+4. **Voice Input/Output** - Modern and useful feature
+5. **Collaborative Chat Rooms** - Complex but valuable
+6. **Analytics Dashboard** - Important for business intelligence
+7. **Custom Model Fine-tuning** - Most complex, requires expertise
+
+## 📝 Notes
+
+- These features are currently in the **planning phase**
+- Detailed technical documentation and implementation plans will be prepared for each feature
+- Priorities may change based on community feedback
+- Separate issues will be opened for each feature and PRs are welcome
+
+## 🤝 Contributing
+
+If you want to implement any of these features:
+1. Open a related issue or comment on an existing issue
+2. Share your implementation plan
+3. Discuss with other contributors before opening a PR
+4. Add detailed documentation and tests
+
+---
+
+**Last Updated:** 2025-01-07
