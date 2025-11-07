@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/app/contexts/ThemeContext';
-import ProviderConfig from './ProviderConfig';
 
 /**
  * Provider Selector Component
@@ -20,19 +19,17 @@ interface Provider {
 interface ProviderSelectorProps {
   selectedProvider: string | null;
   selectedModel: string | null;
+  availableProviders: Record<string, { name: string; models: string[] }>;
   onProviderChange: (provider: string, model: string | null) => void;
-  providerConfigs?: Record<string, { apiKey?: string; baseURL?: string; model?: string }>;
-  onProviderConfigUpdate?: (provider: string, config: any) => void;
-  onOpenConfig?: (provider: string) => void;
+  onClose?: () => void;
 }
 
 export default function ProviderSelector({
   selectedProvider,
   selectedModel,
+  availableProviders: availableProvidersProp,
   onProviderChange,
-  providerConfigs = {},
-  onProviderConfigUpdate,
-  onOpenConfig,
+  onClose,
 }: ProviderSelectorProps) {
   const theme = useTheme();
   const [providers, setProviders] = useState<Record<string, Provider>>({});
@@ -40,43 +37,23 @@ export default function ProviderSelector({
   const [defaultProvider, setDefaultProvider] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
-
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [providerConfigs, setProviderConfigs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!hasLoaded) {
-      loadProviders();
-      setHasLoaded(true);
-    }
-  }, [hasLoaded]);
+    loadProviders();
+  }, []);
 
-  // Re-render when providerConfigs change
-  useEffect(() => {
-    // Force re-render to update Active status
-  }, [providerConfigs]);
-
-  // Check if provider is configured (ONLY from UI config, not .env)
-  // User must configure provider in UI to make it Active
-  const isProviderConfigured = (providerKey: string): boolean => {
-    // Check if provider has UI config with API key
-    const uiConfig = providerConfigs[providerKey];
-    if (uiConfig?.apiKey && uiConfig.apiKey.trim() !== '') {
-      return true;
-    }
-    
-    // For Ollama, check baseURL instead of API key
-    if (providerKey === 'ollama' && uiConfig?.baseURL && uiConfig.baseURL.trim() !== '') {
-      return true;
-    }
-    
-    // For QrokCloud, check both API key and baseURL
-    if (providerKey === 'qrokcloud' && uiConfig?.apiKey && uiConfig?.baseURL) {
-      if (uiConfig.apiKey.trim() !== '' && uiConfig.baseURL.trim() !== '') {
-        return true;
+  // Check if provider is configured in .env
+  const isProviderConfigured = async (providerKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/llm/config?provider=${providerKey}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.hasApiKey || false;
       }
+    } catch (error) {
+      console.error(`Error checking provider config for ${providerKey}:`, error);
     }
-    
-    // Only UI config counts, not .env
     return false;
   };
 
@@ -89,9 +66,17 @@ export default function ProviderSelector({
       setAvailableProviders(data.available || []);
       setDefaultProvider(data.default || null);
 
-      // Don't auto-select provider when modal opens
-      // Only set default if it's the initial load and no provider is selected
-      // This prevents changing the top bar model when modal is opened
+      // Check which providers are configured in .env
+      const configChecks: Record<string, boolean> = {};
+      const checkPromises = (data.available || []).map(async (providerKey: string) => {
+        const isConfigured = await isProviderConfigured(providerKey);
+        return { providerKey, isConfigured };
+      });
+      const results = await Promise.all(checkPromises);
+      results.forEach(({ providerKey, isConfigured }) => {
+        configChecks[providerKey] = isConfigured;
+      });
+      setProviderConfigs(configChecks);
     } catch (error) {
       console.error('Error loading providers:', error);
     } finally {
@@ -140,7 +125,7 @@ export default function ProviderSelector({
               {selectedProvider ? (
                 <>
                   <span className="font-medium">{providers[selectedProvider]?.name || selectedProvider}</span>
-                  {isProviderConfigured(selectedProvider) ? (
+                  {providerConfigs[selectedProvider] ? (
                     <span className="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-600 dark:text-green-400">
                       Active
                     </span>
@@ -178,7 +163,7 @@ export default function ProviderSelector({
               ></div>
               <div className="absolute z-[150] w-full mt-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-2xl max-h-64 overflow-y-auto">
                 {Object.entries(providers).map(([key, provider]) => {
-                  const isAvailable = isProviderConfigured(key);
+                  const isAvailable = providerConfigs[key] || false;
                   return (
                     <button
                       key={key}
@@ -233,39 +218,12 @@ export default function ProviderSelector({
         </div>
       )}
 
-      {/* Provider Config */}
-      {selectedProvider && currentProvider && (
-        <div className="flex items-center justify-end mt-2 pt-2 border-t border-[var(--border-color)]">
-          {onOpenConfig && selectedProvider ? (
-            <button
-              onClick={() => onOpenConfig(selectedProvider)}
-              className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors cursor-pointer relative z-10"
-              title="Configure Provider"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"></path>
-              </svg>
-            </button>
-          ) : (
-            <ProviderConfig 
-              provider={selectedProvider} 
-              onConfigUpdate={(config) => {
-                if (onProviderConfigUpdate && selectedProvider) {
-                  onProviderConfigUpdate(selectedProvider, config);
-                }
-              }}
-            />
-          )}
+      {/* Info message for configuration */}
+      {selectedProvider && !providerConfigs[selectedProvider] && (
+        <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
+          <p className="text-xs text-[var(--text-secondary)]">
+            ⚠️ {selectedProvider} is not configured. Please add {selectedProvider.toUpperCase().replace('-', '_')}_API_KEY to your .env file.
+          </p>
         </div>
       )}
     </div>

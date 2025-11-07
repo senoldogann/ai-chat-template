@@ -92,9 +92,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    ```env
    # Database (Required)
    DATABASE_URL="postgresql://user:password@localhost:5432/ai_chat"
+   
+   # LLM Provider API Keys (Required - at least one provider must be configured)
+   # Add API keys for the providers you want to use:
+   OPENAI_API_KEY="sk-..."
+   ANTHROPIC_API_KEY="sk-ant-..."
+   GOOGLE_API_KEY="..."
+   OLLAMA_API_KEY="..."  # Optional for local Ollama, required for cloud
+   OPENROUTER_API_KEY="sk-or-..."
+   QROKCLOUD_API_KEY="..."
+   GITHUB_COPILOT_API_KEY="..."
+   HUGGINGFACE_API_KEY="hf_..."  # or HF_API_KEY or HF_API
    ```
    
-   **Note:** LLM provider API keys are optional. You can configure them via the UI after starting the application. If you want to set default values for all users, you can add them to `.env`. See `.env.example` for all available options.
+   **Important:** 
+   - **API keys must be configured in `.env` file** - UI configuration is not available
+   - At least one LLM provider must be configured with an API key
+   - For Ollama local mode, you can omit `OLLAMA_API_KEY` (it will use `http://localhost:11434`)
+   - For Ollama cloud mode, you must set `OLLAMA_API_KEY` (it will use `https://ollama.com/api`)
+   - See `.env.example` for all available options and detailed descriptions
 
 4. **Set up the database**
    ```bash
@@ -118,10 +134,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Basic Chat
 
-1. Select a provider from the top bar (or configure one in the settings)
-2. Type your message in the input field
-3. Press Enter or click Send
-4. The AI will respond with streaming text
+1. **Configure API keys in `.env` file** (see Configuration section below)
+2. Select a provider from the top bar
+3. Select a model from the dropdown
+4. Type your message in the input field
+5. Press Enter or click Send
+6. The AI will respond with streaming text
 
 ### Advanced Features
 
@@ -158,21 +176,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### LLM Provider Configuration
 
-You can configure providers in two ways:
+**All API keys must be configured in the `.env` file.** UI configuration is not available.
 
-#### 1. UI Configuration (Recommended)
-
-Configure providers directly in the UI:
-1. Click on the provider name in the top bar
-2. Select "Configure Provider"
-3. Enter your API key and settings
-4. Click "Save"
-
-Your settings will be saved to your browser's local storage and persist across page refreshes.
-
-#### 2. Environment Variables (Optional - for Default Values)
-
-If you want to set default values for all users, add provider configuration to your `.env` file:
+Add provider configuration to your `.env` file:
 
 ```env
 # Provider selection
@@ -208,7 +214,12 @@ OLLAMA_BASE_URL=https://ollama.com/api
 OLLAMA_MODEL=deepseek-v3.1:671b-cloud
 ```
 
-**Note:** Environment variables are optional. Users can configure their API keys via the UI, which will be saved to their browser's local storage.
+**Important:** 
+- **API keys must be configured in `.env` file** - UI configuration is not available
+- At least one LLM provider must be configured with an API key
+- For Ollama local mode, you can omit `OLLAMA_API_KEY` (it will use `http://localhost:11434`)
+- For Ollama cloud mode, you must set `OLLAMA_API_KEY` (it will use `https://ollama.com/api`)
+- See `.env.example` for all available options and detailed descriptions
 
 ### Database Configuration
 
@@ -315,9 +326,9 @@ Get available LLM providers.
 
 Get provider configuration.
 
-#### POST `/api/llm/config`
+#### GET `/api/llm/providers/[provider]/models`
 
-Update provider configuration (session-based).
+Get available models for a provider. Requires the provider to be configured in `.env` file.
 
 ## 🛠️ Development
 

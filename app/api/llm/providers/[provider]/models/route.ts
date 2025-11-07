@@ -13,38 +13,29 @@ export async function GET(
     const { provider: providerParam } = await params;
     const provider = providerParam as LLMProvider;
     
-    // Get provider config from environment or request
-    const { searchParams } = new URL(request.url);
-    const apiKey = searchParams.get('apiKey');
-    const baseURL = searchParams.get('baseURL');
+    // Get provider config from environment ONLY (no UI config)
+    const config = getProviderConfigFromEnv(provider);
     
-    let config = getProviderConfigFromEnv(provider);
-    
-    // Override with request parameters if provided
-    if (apiKey || baseURL) {
-      config = {
-        ...config,
-        apiKey: apiKey || config?.apiKey || '',
-        baseURL: baseURL || config?.baseURL || undefined,
-      };
+    // Check if provider is configured
+    if (!config) {
+      return Response.json(
+        { error: `Provider ${provider} is not configured. Please set ${provider.toUpperCase().replace('-', '_')}_API_KEY in .env file.` },
+        { status: 400 }
+      );
     }
     
-    if (!config || !config.apiKey) {
-      // For Ollama local, we can still fetch models without API key
-      if (provider === 'ollama' && !config?.apiKey) {
-        // If baseURL is provided and contains 'ollama.com', use it (cloud)
-        // Otherwise use localhost (local)
-        const ollamaBaseURL = baseURL || (config?.baseURL?.includes('ollama.com') ? config.baseURL : 'http://localhost:11434');
-        config = {
-          apiKey: '',
-          baseURL: ollamaBaseURL,
-        };
-      } else {
-        return Response.json(
-          { error: `Provider ${provider} is not configured. Please provide an API key.` },
-          { status: 400 }
-        );
-      }
+    // For Ollama, API key is optional (local mode doesn't need API key)
+    // For other providers, API key is required
+    if (provider !== 'ollama' && !config.apiKey) {
+      return Response.json(
+        { error: `Provider ${provider} is not configured. Please set ${provider.toUpperCase().replace('-', '_')}_API_KEY in .env file.` },
+        { status: 400 }
+      );
+    }
+    
+    // For Ollama, if no API key, ensure baseURL is set to local
+    if (provider === 'ollama' && !config.apiKey) {
+      config.baseURL = config.baseURL || 'http://localhost:11434';
     }
     
     // Fetch models from provider API
@@ -120,7 +111,8 @@ async function fetchModelsFromProvider(
         // Ollama API endpoint: /api/tags for local, /tags for cloud
         // For cloud, baseURL should be https://ollama.com/api
         // For local, baseURL should be http://localhost:11434
-        const ollamaBaseURL = baseURL || (config.apiKey ? 'https://ollama.com/api' : 'http://localhost:11434');
+        // Use config.baseURL if available, otherwise determine from API key
+        const ollamaBaseURL = config.baseURL || (config.apiKey ? 'https://ollama.com/api' : 'http://localhost:11434');
         
         // Determine the correct endpoint based on baseURL
         // If baseURL includes 'ollama.com', it's cloud and endpoint is /tags

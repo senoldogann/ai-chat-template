@@ -30,6 +30,22 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string | null>(initialChatId || null);
   const [showProviderModal, setShowProviderModal] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configProvider, setConfigProvider] = useState<string | null>(null);
+  // Load provider configs from localStorage on mount
+  const [providerConfigs, setProviderConfigs] = useState<Record<string, { apiKey?: string; baseURL?: string; model?: string; temperature?: number; maxTokens?: number }>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('ai-chat-provider-configs');
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (error) {
+        console.error('Error loading provider configs from localStorage:', error);
+      }
+    }
+    return {};
+  });
   
   // Load selected provider and model from localStorage on mount
   const [selectedProvider, setSelectedProvider] = useState<string | null>(() => {
@@ -65,6 +81,55 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
   const loadingChatRef = useRef<string | null>(null); // Track which chat is currently loading
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme, mounted: themeMounted } = useTheme();
+  
+  // Save provider configs to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('ai-chat-provider-configs', JSON.stringify(providerConfigs));
+      } catch (error) {
+        console.error('Error saving provider configs to localStorage:', error);
+      }
+    }
+  }, [providerConfigs]);
+
+  // Reload provider configs from localStorage periodically to catch external updates
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const reloadConfigs = () => {
+        try {
+          const saved = localStorage.getItem('ai-chat-provider-configs');
+          if (saved) {
+            const loadedConfigs = JSON.parse(saved);
+            // Only update if there are actual changes to avoid infinite loops
+            setProviderConfigs((prev) => {
+              const hasChanges = JSON.stringify(prev) !== JSON.stringify(loadedConfigs);
+              if (hasChanges) {
+                return loadedConfigs;
+              }
+              return prev;
+            });
+          }
+        } catch (error) {
+          console.error('Error reloading provider configs from localStorage:', error);
+        }
+      };
+
+      // Reload immediately on mount
+      reloadConfigs();
+
+      // Reload when window gains focus (user might have updated in another tab)
+      window.addEventListener('focus', reloadConfigs);
+
+      // Reload periodically (every 2 seconds) to catch updates
+      const interval = setInterval(reloadConfigs, 2000);
+
+      return () => {
+        window.removeEventListener('focus', reloadConfigs);
+        clearInterval(interval);
+      };
+    }
+  }, []);
   
   // Save selected provider to localStorage whenever it changes
   useEffect(() => {
@@ -543,6 +608,85 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
           })),
           provider: selectedProvider || undefined,
           model: selectedModel || undefined,
+          apiKey: (() => {
+            // Get API key from state first, then fallback to localStorage
+            if (selectedProvider && providerConfigs[selectedProvider]?.apiKey) {
+              return providerConfigs[selectedProvider].apiKey;
+            }
+            // Fallback to localStorage if state is not updated yet
+            if (selectedProvider && typeof window !== 'undefined') {
+              try {
+                const saved = localStorage.getItem('ai-chat-provider-configs');
+                if (saved) {
+                  const allConfigs = JSON.parse(saved);
+                  return allConfigs[selectedProvider]?.apiKey;
+                }
+              } catch (error) {
+                console.error('Error reading API key from localStorage:', error);
+              }
+            }
+            return undefined;
+          })(),
+          baseURL: (() => {
+            // Default API URLs for each provider (fallback)
+            const DEFAULT_API_URLS: Record<string, string> = {
+              openai: 'https://api.openai.com/v1',
+              anthropic: 'https://api.anthropic.com/v1',
+              google: 'https://generativelanguage.googleapis.com/v1',
+              ollama: 'https://ollama.com/api',
+              openrouter: 'https://openrouter.ai/api/v1',
+              qrokcloud: 'https://api.qrokcloud.com/v1',
+              'github-copilot': 'https://api.githubcopilot.com/v1',
+              huggingface: 'https://router.huggingface.co/hf-inference',
+            };
+            
+            // Get baseURL from state first, then fallback to localStorage
+            if (selectedProvider && providerConfigs[selectedProvider]?.baseURL) {
+              return providerConfigs[selectedProvider].baseURL;
+            }
+            // For Ollama, if API key exists, use cloud URL
+            if (selectedProvider === 'ollama') {
+              const apiKey = (() => {
+                if (providerConfigs[selectedProvider]?.apiKey) {
+                  return providerConfigs[selectedProvider].apiKey;
+                }
+                if (typeof window !== 'undefined') {
+                  try {
+                    const saved = localStorage.getItem('ai-chat-provider-configs');
+                    if (saved) {
+                      const allConfigs = JSON.parse(saved);
+                      return allConfigs[selectedProvider]?.apiKey;
+                    }
+                  } catch (error) {
+                    console.error('Error reading API key from localStorage:', error);
+                  }
+                }
+                return undefined;
+              })();
+              if (apiKey) {
+                return 'https://ollama.com/api';
+              }
+              // For Ollama without API key, use local URL
+              return 'http://localhost:11434';
+            }
+            // Fallback to localStorage if state is not updated yet
+            if (selectedProvider && typeof window !== 'undefined') {
+              try {
+                const saved = localStorage.getItem('ai-chat-provider-configs');
+                if (saved) {
+                  const allConfigs = JSON.parse(saved);
+                  const savedBaseURL = allConfigs[selectedProvider]?.baseURL;
+                  if (savedBaseURL) {
+                    return savedBaseURL;
+                  }
+                }
+              } catch (error) {
+                console.error('Error reading baseURL from localStorage:', error);
+              }
+            }
+            // Final fallback: use default URL for the provider
+            return selectedProvider ? DEFAULT_API_URLS[selectedProvider] : undefined;
+          })(),
           stream: true,
           chatId,
         }),
@@ -600,16 +744,10 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                 }
               }
               
-              // Process all remaining buffer content (including incomplete last line)
+              // Process all remaining buffer content
               if (buffer.trim()) {
-                // Split by newline, but also process the last line even if it doesn't end with \n
-                const lines = buffer.split('\n');
-                
-                // Process all complete lines (ending with \n)
-                for (let i = 0; i < lines.length - 1; i++) {
-                  const line = lines[i].trim();
-                  if (line === '') continue;
-                  
+                const lines = buffer.split('\n').filter(line => line.trim());
+                for (const line of lines) {
                   if (line.startsWith('data: ')) {
                     const data = line.slice(6).trim();
                     if (data === '[DONE]') {
@@ -622,108 +760,12 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                       if (delta) {
                         console.log(`[Chat] Adding final delta from buffer: ${delta.substring(0, 100)}...`);
                         aiMessageContent += delta;
-                        // Update UI immediately with final delta
-                        setMessages((prev) =>
-                          prev.map((msg, idx) =>
-                            idx === prev.length - 1
-                              ? { ...msg, content: aiMessageContent, isStreaming: true }
-                              : msg
-                          )
-                        );
-                      }
-                    } catch (e) {
-                      // Ignore parse errors
-                    }
-                  } else {
-                    // Try to parse as JSON directly (Ollama format)
-                    try {
-                      const json = JSON.parse(line);
-                      if (json.message?.content) {
-                        const delta = json.message.content;
-                        console.log(`[Chat] Adding final delta from buffer (Ollama format): ${delta.substring(0, 100)}...`);
-                        aiMessageContent += delta;
-                        // Update UI immediately with final delta
-                        setMessages((prev) =>
-                          prev.map((msg, idx) =>
-                            idx === prev.length - 1
-                              ? { ...msg, content: aiMessageContent, isStreaming: true }
-                              : msg
-                          )
-                        );
                       }
                     } catch (e) {
                       // Ignore parse errors
                     }
                   }
                 }
-                
-                // Process the last incomplete line (if it exists and doesn't end with \n)
-                const lastLine = lines[lines.length - 1].trim();
-                if (lastLine) {
-                  if (lastLine.startsWith('data: ')) {
-                    const data = lastLine.slice(6).trim();
-                    if (data !== '[DONE]') {
-                      try {
-                        const json = JSON.parse(data);
-                        const delta = json.choices?.[0]?.delta?.content;
-                        if (delta) {
-                          console.log(`[Chat] Adding final delta from incomplete last line: ${delta.substring(0, 100)}...`);
-                          aiMessageContent += delta;
-                          // Update UI immediately with final delta
-                          setMessages((prev) =>
-                            prev.map((msg, idx) =>
-                              idx === prev.length - 1
-                                ? { ...msg, content: aiMessageContent, isStreaming: true }
-                                : msg
-                            )
-                          );
-                        }
-                      } catch (e) {
-                        // Ignore parse errors
-                      }
-                    }
-                  } else {
-                    // Try to parse as JSON directly (Ollama format)
-                    try {
-                      const json = JSON.parse(lastLine);
-                      if (json.message?.content) {
-                        const delta = json.message.content;
-                        console.log(`[Chat] Adding final delta from incomplete last line (Ollama format): ${delta.substring(0, 100)}...`);
-                        aiMessageContent += delta;
-                        // Update UI immediately with final delta
-                        setMessages((prev) =>
-                          prev.map((msg, idx) =>
-                            idx === prev.length - 1
-                              ? { ...msg, content: aiMessageContent, isStreaming: true }
-                              : msg
-                          )
-                        );
-                      }
-                    } catch (e) {
-                      // If last line is incomplete JSON, try to extract partial content
-                      try {
-                        const partialMatch = lastLine.match(/"content"\s*:\s*"([^"]*)/);
-                        if (partialMatch && partialMatch[1]) {
-                          console.log(`[Chat] Adding partial content from incomplete JSON: ${partialMatch[1].substring(0, 100)}...`);
-                          aiMessageContent += partialMatch[1];
-                          // Update UI immediately with final delta
-                          setMessages((prev) =>
-                            prev.map((msg, idx) =>
-                              idx === prev.length - 1
-                                ? { ...msg, content: aiMessageContent, isStreaming: true }
-                                : msg
-                            )
-                          );
-                        }
-                      } catch (e2) {
-                        // Ignore parse errors
-                      }
-                    }
-                  }
-                }
-                
-                // Clear buffer after processing
-                buffer = '';
               }
               
               // Finalize message
@@ -770,45 +812,15 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                             const json = JSON.parse(remainingData);
                             const delta = json.choices?.[0]?.delta?.content;
                             if (delta) {
-                              console.log(`[Chat] Adding final delta from buffer: ${delta.substring(0, 100)}...`);
+                              console.log(`[Chat] Adding delta from buffer: ${delta.substring(0, 100)}...`);
                               aiMessageContent += delta;
-                              // Update UI immediately with final delta
-                              setMessages((prev) =>
-                                prev.map((msg, idx) =>
-                                  idx === prev.length - 1
-                                    ? { ...msg, content: aiMessageContent, isStreaming: true }
-                                    : msg
-                                )
-                              );
                             }
                           } catch (e) {
                             // Ignore parse errors
                           }
                         }
-                      } else {
-                        // Try to parse as JSON directly (Ollama format)
-                        try {
-                          const json = JSON.parse(remainingLine);
-                          if (json.message?.content) {
-                            const delta = json.message.content;
-                            console.log(`[Chat] Adding final delta from buffer (Ollama format): ${delta.substring(0, 100)}...`);
-                            aiMessageContent += delta;
-                            // Update UI immediately with final delta
-                            setMessages((prev) =>
-                              prev.map((msg, idx) =>
-                                idx === prev.length - 1
-                                  ? { ...msg, content: aiMessageContent, isStreaming: true }
-                                  : msg
-                              )
-                            );
-                          }
-                        } catch (e) {
-                          // Ignore parse errors
-                        }
                       }
                     }
-                    // Clear buffer after processing
-                    buffer = '';
                   }
                   
                   // Streaming complete - finalize message
@@ -983,10 +995,16 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
     loadProviders();
   }, []);
   
-  // Fetch models for a specific provider (from .env configuration)
-  const fetchModelsForProvider = async (provider: string) => {
+  // Fetch models for a specific provider
+  const fetchModelsForProvider = async (provider: string, apiKey?: string, baseURL?: string) => {
     try {
-      const url = `/api/llm/providers/${provider}/models`;
+      let url = `/api/llm/providers/${provider}/models`;
+      if (apiKey || baseURL) {
+        const params = new URLSearchParams();
+        if (apiKey) params.append('apiKey', apiKey);
+        if (baseURL) params.append('baseURL', baseURL);
+        url += `?${params.toString()}`;
+      }
       
       const response = await fetch(url);
       if (response.ok) {
@@ -1022,37 +1040,83 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
     }
   };
   
-  // Fetch models for selected provider when provider changes
+  // Fetch models for selected provider when provider or config changes
   useEffect(() => {
     const loadModels = async () => {
       if (!selectedProvider) return;
       
-      // Check if provider is configured in .env and fetch models
-      try {
-        const configResponse = await fetch(`/api/llm/config?provider=${selectedProvider}`);
-        if (configResponse.ok) {
-          const configData = await configResponse.json();
-          if (configData.hasApiKey) {
-            // Provider is configured in .env, fetch models
-            await fetchModelsForProvider(selectedProvider);
-          } else {
-            // Provider not configured
-            alert(`${selectedProvider} is not configured. Please add API key to .env file.`);
+      // Get provider config (from localStorage)
+      const config = providerConfigs[selectedProvider];
+      const apiKey = config?.apiKey;
+      const baseURL = config?.baseURL;
+      
+      // If no API key in config, try to get from .env (provider might be configured)
+      if (!apiKey) {
+        try {
+          const configResponse = await fetch(`/api/llm/config?provider=${selectedProvider}`);
+          if (configResponse.ok) {
+            const configData = await configResponse.json();
+            if (configData.hasApiKey) {
+              // Provider is configured in .env, fetch models
+              await fetchModelsForProvider(selectedProvider);
+            }
           }
+        } catch (error) {
+          console.error('Error checking provider config:', error);
         }
-      } catch (error) {
-        console.error('Error checking provider config:', error);
+      } else {
+        // Provider has API key in config, fetch models
+        await fetchModelsForProvider(selectedProvider, apiKey, baseURL);
       }
     };
     
     loadModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProvider]);
+  }, [selectedProvider, providerConfigs]);
 
   // Handle provider change
   const handleProviderChange = (provider: string, model: string | null) => {
     setSelectedProvider(provider);
     setSelectedModel(model);
+  };
+
+  // Handle provider config update
+  const handleProviderConfigUpdate = (provider: string, config: any) => {
+    // Update state immediately
+    setProviderConfigs((prev) => {
+      const updated = {
+        ...prev,
+        [provider]: config,
+      };
+      
+      // Also save to localStorage immediately to ensure persistence
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('ai-chat-provider-configs', JSON.stringify(updated));
+        } catch (error) {
+          console.error('Error saving provider configs to localStorage:', error);
+        }
+      }
+      
+      return updated;
+    });
+    
+    // Fetch models after config is updated
+    if (config?.apiKey) {
+      fetchModelsForProvider(provider, config.apiKey, config.baseURL);
+    }
+  };
+
+  // Handle config modal open
+  const handleOpenConfig = (provider: string) => {
+    setConfigProvider(provider);
+    setShowConfigModal(true);
+  };
+
+  // Handle config modal close
+  const handleCloseConfig = () => {
+    setShowConfigModal(false);
+    setConfigProvider(null);
   };
 
   return (
@@ -1427,11 +1491,58 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                 <ProviderSelector
                   selectedProvider={selectedProvider}
                   selectedModel={selectedModel}
-                  availableProviders={availableProviders}
                   onProviderChange={handleProviderChange}
-                  onClose={() => setShowProviderModal(false)}
+                  providerConfigs={providerConfigs}
+                  onProviderConfigUpdate={handleProviderConfigUpdate}
+                  onOpenConfig={handleOpenConfig}
                 />
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Provider Config Modal - Rendered outside Provider Modal */}
+      {showConfigModal && configProvider && (
+        <>
+          <div
+            className="fixed inset-0 z-[200] bg-black/70"
+            onClick={handleCloseConfig}
+          ></div>
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 pointer-events-none">
+            <div 
+              className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-2xl p-6 max-h-[90vh] overflow-y-auto relative z-[300] pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  Configure {configProvider}
+                </h3>
+                <button
+                  onClick={handleCloseConfig}
+                  className="p-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors cursor-pointer"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <ProviderConfig
+                provider={configProvider}
+                onConfigUpdate={(config) => {
+                  handleProviderConfigUpdate(configProvider, config);
+                  handleCloseConfig();
+                }}
+                isStandalone={true}
+              />
             </div>
           </div>
         </>

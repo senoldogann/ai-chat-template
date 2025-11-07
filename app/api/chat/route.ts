@@ -30,7 +30,7 @@ const DEFAULT_API_URLS: Record<LLMProvider, string> = {
  */
 function getLLMProvider(
   providerName?: string,
-  sessionConfig?: { apiKey?: string; baseURL?: string; model?: string }
+  requestedModel?: string
 ): { provider: unknown; providerName: LLMProvider } {
   // Provider must be explicitly specified
   if (!providerName) {
@@ -40,8 +40,8 @@ function getLLMProvider(
   // Get provider from request
   const requestedProvider = providerName as LLMProvider;
   
-  // Get config from environment
-  let config = getProviderConfigFromEnv(requestedProvider);
+  // Get config from environment ONLY (no UI config)
+  const config = getProviderConfigFromEnv(requestedProvider);
   
   // Debug: log config loading (only in development)
   if (process.env.NODE_ENV === 'development') {
@@ -49,59 +49,15 @@ function getLLMProvider(
     console.log(`[getLLMProvider] Config from env:`, config ? { hasApiKey: !!config.apiKey, baseURL: config.baseURL, model: config.model } : null);
   }
   
-  // Override with session config if provided (from UI)
-  if (sessionConfig) {
-    // If session config has API key, use it
-    if (sessionConfig.apiKey) {
-      // For Ollama: if API key is provided, use cloud URL; otherwise use local URL
-      let finalBaseURL = sessionConfig.baseURL;
-      if (requestedProvider === 'ollama') {
-        if (sessionConfig.apiKey && sessionConfig.apiKey.trim() !== '') {
-          // Cloud mode - use cloud URL (always override if API key exists)
-          finalBaseURL = 'https://ollama.com/api';
-        } else {
-          // Local mode - use local URL
-          finalBaseURL = sessionConfig.baseURL || 'http://localhost:11434';
-        }
-      } else {
-        // For other providers, use provided baseURL or fallback to defaults
-        finalBaseURL = sessionConfig.baseURL || config?.baseURL || DEFAULT_API_URLS[requestedProvider];
-      }
-      
-      config = {
-        ...config,
-        apiKey: sessionConfig.apiKey,
-        baseURL: finalBaseURL,
-        model: sessionConfig.model || config?.model,
-      };
-      
-      // Debug: log session config override (only in development)
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[getLLMProvider] Using session config with API key`);
-        console.log(`[getLLMProvider] Final baseURL:`, finalBaseURL);
-      }
-    } else if (config) {
-      // If no session API key but env config exists, use env config
-      // For Ollama: if no API key, use local URL
-      let finalBaseURL = sessionConfig.baseURL;
-      if (requestedProvider === 'ollama' && !config.apiKey) {
-        finalBaseURL = sessionConfig.baseURL || 'http://localhost:11434';
-      } else {
-        finalBaseURL = sessionConfig.baseURL || config.baseURL;
-      }
-      
-      config = {
-        ...config,
-        baseURL: finalBaseURL,
-        model: sessionConfig.model || config.model,
-      };
-    }
+  // Check if provider is configured
+  if (!config) {
+    throw new Error(`Provider ${requestedProvider} is not configured. Please set ${requestedProvider.toUpperCase().replace('-', '_')}_API_KEY in .env file.`);
   }
   
   // For Ollama, API key is optional (local mode doesn't need API key)
   // For other providers, API key is required
-  if (!config) {
-    throw new Error(`Provider ${requestedProvider} is not configured. Please configure it in the UI.`);
+  if (requestedProvider !== 'ollama' && !config.apiKey) {
+    throw new Error(`Provider ${requestedProvider} is not configured. Please set ${requestedProvider.toUpperCase().replace('-', '_')}_API_KEY in .env file.`);
   }
   
   // For Ollama, if no API key, ensure baseURL is set to local
@@ -109,20 +65,9 @@ function getLLMProvider(
     config.baseURL = config.baseURL || 'http://localhost:11434';
   }
   
-  // For other providers, API key is required
-  if (requestedProvider !== 'ollama' && !config.apiKey) {
-    // Debug: log error reason (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[getLLMProvider] Config is null or missing API key`);
-      console.log(`[getLLMProvider] Config:`, config);
-      console.log(`[getLLMProvider] Environment variables:`, {
-        HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY ? '***' : undefined,
-        HF_API_KEY: process.env.HF_API_KEY ? '***' : undefined,
-        HF_API: process.env.HF_API ? '***' : undefined,
-      });
-    }
-    
-    throw new Error(`Provider ${requestedProvider} is not configured. Please set ${requestedProvider.toUpperCase().replace('-', '_')}_API_KEY in environment variables or configure it in the UI.`);
+  // Override model if provided in request
+  if (requestedModel) {
+    config.model = requestedModel;
   }
 
   // Create provider instance
@@ -309,9 +254,6 @@ export async function POST(request: NextRequest) {
       chatId,
       provider: requestedProvider,
       model: requestedModel,
-      // Session config overrides (from UI)
-      apiKey: sessionApiKey,
-      baseURL: sessionBaseURL,
     } = body as {
       messages: unknown[];
       temperature?: number;
@@ -320,8 +262,6 @@ export async function POST(request: NextRequest) {
       chatId?: string;
       provider?: string;
       model?: string;
-      apiKey?: string;
-      baseURL?: string;
     };
     
     // Convert messages to typed array
@@ -448,14 +388,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get LLM provider (with session config overrides if provided)
+    // Get LLM provider (from .env only)
     const { provider, providerName } = getLLMProvider(
       requestedProvider,
-      sessionApiKey || sessionBaseURL ? {
-        apiKey: sessionApiKey,
-        baseURL: sessionBaseURL,
-        model: requestedModel,
-      } : undefined
+      requestedModel
     );
 
     // Convert messages to LLM format
@@ -504,41 +440,76 @@ export async function POST(request: NextRequest) {
                   buffer += decoder.decode(value, { stream: false });
                 } else if (typeof value === 'string') {
                   buffer += value;
-                } else if (buffer.trim()) {
-                  // If no value but buffer exists, try to finalize buffer
-                  try {
-                    const finalDecoded = decoder.decode(new TextEncoder().encode(buffer), { stream: false });
-                    buffer = finalDecoded;
-                  } catch (e) {
-                    // If decode fails, use buffer as is
-                  }
                 }
                 
-                // Process all remaining buffer content
+                // Process all remaining buffer content (including incomplete last line)
                 if (buffer.trim()) {
-                  const lines = buffer.split('\n').filter(line => line.trim());
-                  for (const line of lines) {
-                    if (line.trim()) {
-                      // Check if line is already in SSE format
-                      if (line.startsWith('data: ')) {
-                        controller.enqueue(encoder.encode(line + '\n'));
-                      } else {
-                        // Convert to SSE format
+                  // Split by newline, but also process the last line even if it doesn't end with \n
+                  const lines = buffer.split('\n');
+                  
+                  // Process all complete lines (ending with \n)
+                  for (let i = 0; i < lines.length - 1; i++) {
+                    const line = lines[i].trim();
+                    if (line === '') continue;
+                    
+                    // Check if line is already in SSE format
+                    if (line.startsWith('data: ')) {
+                      controller.enqueue(encoder.encode(line + '\n'));
+                    } else {
+                      // Convert to SSE format (Ollama format)
+                      try {
+                        const json = JSON.parse(line);
+                        if (json.message?.content) {
+                          const data = JSON.stringify({
+                            choices: [{
+                              delta: { content: json.message.content },
+                            }],
+                            model: json.model || providerName,
+                          });
+                          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                        }
+                      } catch (e) {
+                        // If not JSON, send as is
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: line })}\n\n`));
+                      }
+                    }
+                  }
+                  
+                  // Process the last incomplete line (if it exists and doesn't end with \n)
+                  const lastLine = lines[lines.length - 1].trim();
+                  if (lastLine) {
+                    // Check if line is already in SSE format
+                    if (lastLine.startsWith('data: ')) {
+                      controller.enqueue(encoder.encode(lastLine + '\n'));
+                    } else {
+                      // Convert to SSE format (Ollama format)
+                      try {
+                        const json = JSON.parse(lastLine);
+                        if (json.message?.content) {
+                          const data = JSON.stringify({
+                            choices: [{
+                              delta: { content: json.message.content },
+                            }],
+                            model: json.model || providerName,
+                          });
+                          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                        }
+                      } catch (e) {
+                        // If last line is incomplete JSON, try to extract partial content
                         try {
-                          // Try to parse as JSON (Ollama format)
-                          const json = JSON.parse(line);
-                          if (json.message?.content) {
+                          const partialMatch = lastLine.match(/"content"\s*:\s*"([^"]*)/);
+                          if (partialMatch && partialMatch[1]) {
                             const data = JSON.stringify({
                               choices: [{
-                                delta: { content: json.message.content },
+                                delta: { content: partialMatch[1] },
                               }],
-                              model: json.model || providerName,
+                              model: providerName,
                             });
                             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                           }
-                        } catch (e) {
+                        } catch (e2) {
                           // If not JSON, send as is
-                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: line })}\n\n`));
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: lastLine })}\n\n`));
                         }
                       }
                     }
@@ -653,8 +624,11 @@ export async function POST(request: NextRequest) {
                         }
                       }
                     }
+                    // Clear buffer after processing
+                    buffer = '';
                   }
                   
+                  // Send final done signal
                   controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                   break;
                 }
