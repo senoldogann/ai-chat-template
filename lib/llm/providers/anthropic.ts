@@ -20,6 +20,14 @@ export class AnthropicProvider implements LLMProviderInterface {
     const baseURL = this.config.baseURL || 'https://api.anthropic.com/v1';
     const model = request.model || this.config.model || 'claude-3-5-sonnet-20241022';
 
+    // Anthropic uses 'tools' parameter for function calling (Claude 3.5+)
+    // Convert OpenAI format tools to Anthropic format if provided
+    const anthropicTools = request.tools ? request.tools.map(tool => ({
+      name: tool.function.name,
+      description: tool.function.description,
+      input_schema: tool.function.parameters,
+    })) : undefined;
+
     const response = await fetch(`${baseURL}/messages`, {
       method: 'POST',
       headers: {
@@ -27,14 +35,6 @@ export class AnthropicProvider implements LLMProviderInterface {
         'x-api-key': this.config.apiKey,
         'anthropic-version': '2023-06-01',
       },
-      // Anthropic uses 'tools' parameter for function calling (Claude 3.5+)
-      // Convert OpenAI format tools to Anthropic format if provided
-      const anthropicTools = request.tools ? request.tools.map(tool => ({
-        name: tool.function.name,
-        description: tool.function.description,
-        input_schema: tool.function.parameters,
-      })) : undefined;
-
       body: JSON.stringify({
         model,
         messages: request.messages,

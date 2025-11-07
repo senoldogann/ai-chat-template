@@ -21,10 +21,22 @@ export const prisma =
   });
 
 // Handle Prisma connection errors
-prisma.$connect().catch((error: unknown) => {
-  console.error('❌ Prisma connection error:', error);
-  process.exit(1);
-});
+// Only connect during runtime, not during build
+// Prisma uses lazy connection, so $connect() is optional
+// We only call it in development to catch connection issues early
+if (process.env.NODE_ENV === 'development' && typeof window === 'undefined') {
+  // Only connect in development server, not during build
+  // Check if we're in a build context by checking for Next.js build phase
+  if (!process.env.NEXT_PHASE || process.env.NEXT_PHASE !== 'phase-production-build') {
+    prisma.$connect().catch((error: unknown) => {
+      console.error('❌ Prisma connection error:', error);
+      // Don't exit during build, just log the error
+      if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        process.exit(1);
+      }
+    });
+  }
+}
 
 // Graceful shutdown
 if (process.env.NODE_ENV !== 'production') {
