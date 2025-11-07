@@ -45,7 +45,7 @@
     "eslint.config.mjs",
     "README.md",
     "LICENSE",
-    "CONTRIBUTING.md",
+    "docs",
     ".npmignore"
   ],
   "scripts": {
