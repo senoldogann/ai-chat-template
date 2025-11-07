@@ -67,6 +67,14 @@ export class AnthropicProvider implements LLMProviderInterface {
     const baseURL = this.config.baseURL || 'https://api.anthropic.com/v1';
     const model = request.model || this.config.model || 'claude-3-5-sonnet-20241022';
 
+    // Anthropic uses 'tools' parameter for function calling (Claude 3.5+)
+    // Convert OpenAI format tools to Anthropic format if provided
+    const anthropicTools = request.tools ? request.tools.map(tool => ({
+      name: tool.function.name,
+      description: tool.function.description,
+      input_schema: tool.function.parameters,
+    })) : undefined;
+
     const response = await fetch(`${baseURL}/messages`, {
       method: 'POST',
       headers: {
@@ -80,6 +88,8 @@ export class AnthropicProvider implements LLMProviderInterface {
         temperature: request.temperature ?? this.config.defaultTemperature ?? 0.7,
         max_tokens: request.max_tokens ?? this.config.defaultMaxTokens ?? 1000,
         stream: true,
+        // Add tools if provided (Anthropic supports native function calling)
+        ...(anthropicTools && anthropicTools.length > 0 && { tools: anthropicTools }),
       }),
     });
 
