@@ -10,7 +10,7 @@ import { useTheme } from '@/app/contexts/ThemeContext';
 
 interface ProviderConfigProps {
   provider: string | null;
-  onConfigUpdate?: (config: any) => void;
+  onConfigUpdate?: (config: { apiKey?: string; model?: string; temperature?: number; maxTokens?: number; baseURL?: string }) => void;
   isStandalone?: boolean; // If true, don't render modal wrapper (already rendered in parent)
 }
 
@@ -159,7 +159,7 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
       <div className="space-y-4">
         <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)]">
           <p className="font-medium mb-1 text-[var(--text-primary)]">Note:</p>
-          <p className="text-[var(--text-secondary)]">Your settings will be saved to your browser's local storage and persist across page refreshes. To set default values for all users, update your <code className="px-1 py-0.5 bg-[var(--bg-primary)] rounded text-[var(--text-primary)]">.env</code> file.</p>
+          <p className="text-[var(--text-secondary)]">Your settings will be saved to your browser&apos;s local storage and persist across page refreshes. To set default values for all users, update your <code className="px-1 py-0.5 bg-[var(--bg-primary)] rounded text-[var(--text-primary)]">.env</code> file.</p>
         </div>
 
         <div>
@@ -312,7 +312,7 @@ export default function ProviderConfig({ provider, onConfigUpdate, isStandalone 
                 <div className="space-y-4">
                   <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)]">
                     <p className="font-medium mb-1 text-[var(--text-primary)]">Note:</p>
-                    <p className="text-[var(--text-secondary)]">Your settings will be saved to your browser's local storage and persist across page refreshes. To set default values for all users, update your <code className="px-1 py-0.5 bg-[var(--bg-primary)] rounded text-[var(--text-primary)]">.env</code> file.</p>
+                    <p className="text-[var(--text-secondary)]">Your settings will be saved to your browser&apos;s local storage and persist across page refreshes. To set default values for all users, update your <code className="px-1 py-0.5 bg-[var(--bg-primary)] rounded text-[var(--text-primary)]">.env</code> file.</p>
                   </div>
 
                   <div>
