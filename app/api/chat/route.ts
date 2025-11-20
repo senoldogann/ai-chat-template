@@ -494,18 +494,38 @@ export async function POST(request: NextRequest) {
                           });
                           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                         }
+                        // Check if this is the final chunk (done: true)
+                        if (json.done) {
+                          // Already processed, will send [DONE] below
+                        }
                       } catch (e) {
                         // If last line is incomplete JSON, try to extract partial content
                         try {
-                          const partialMatch = lastLine.match(/"content"\s*:\s*"([^"]*)/);
+                          const partialMatch = lastLine.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)/);
                           if (partialMatch && partialMatch[1]) {
-                            const data = JSON.stringify({
-                              choices: [{
-                                delta: { content: partialMatch[1] },
-                              }],
-                              model: providerName,
-                            });
-                            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                            // Unescape the content
+                            const unescaped = partialMatch[1].replace(/\\(.)/g, '$1');
+                            if (unescaped) {
+                              const data = JSON.stringify({
+                                choices: [{
+                                  delta: { content: unescaped },
+                                }],
+                                model: providerName,
+                              });
+                              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                            }
+                          } else {
+                            // Try simpler regex
+                            const simpleMatch = lastLine.match(/"content"\s*:\s*"([^"]*)/);
+                            if (simpleMatch && simpleMatch[1]) {
+                              const data = JSON.stringify({
+                                choices: [{
+                                  delta: { content: simpleMatch[1] },
+                                }],
+                                model: providerName,
+                              });
+                              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                            }
                           }
                         } catch (e2) {
                           // If not JSON, send as is
@@ -575,6 +595,44 @@ export async function POST(request: NextRequest) {
                             model: json.model || providerName,
                           });
                           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                        }
+                        // Check if this is the final chunk (done: true)
+                        if (json.done) {
+                          // Process any remaining buffer before closing
+                          if (buffer.trim()) {
+                            try {
+                              const finalJson = JSON.parse(buffer.trim());
+                              if (finalJson.message?.content) {
+                                const finalData = JSON.stringify({
+                                  choices: [{
+                                    delta: { content: finalJson.message.content },
+                                  }],
+                                  model: finalJson.model || providerName,
+                                });
+                                controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
+                              }
+                            } catch (e) {
+                              // If buffer is incomplete JSON, try to extract partial content
+                              try {
+                                const partialMatch = buffer.trim().match(/"content"\s*:\s*"([^"]*)/);
+                                if (partialMatch && partialMatch[1]) {
+                                  const finalData = JSON.stringify({
+                                    choices: [{
+                                      delta: { content: partialMatch[1] },
+                                    }],
+                                    model: providerName,
+                                  });
+                                  controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
+                                }
+                              } catch (e2) {
+                                // Ignore parse errors
+                              }
+                            }
+                            buffer = '';
+                          }
+                          // Send final done signal
+                          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                          break;
                         }
                       } catch (e) {
                         // If not JSON, send as is

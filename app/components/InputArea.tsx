@@ -200,7 +200,7 @@ export default function InputArea({ onSend, isLoading, initialValue, onValueChan
 
   return (
     <div className="bg-[var(--input-bg)] overflow-hidden">
-      <div className="mx-auto max-w-3xl px-4 py-4 overflow-hidden">
+      <div className="mx-auto max-w-4xl px-4 py-4 overflow-hidden">
         <form onSubmit={handleSubmit} className="relative overflow-hidden">
           {/* File Preview - Only for images, shown above input */}
           {uploadedFile && uploadedFile.preview && uploadedFile.type?.startsWith('image/') && (
@@ -387,7 +387,7 @@ export default function InputArea({ onSend, isLoading, initialValue, onValueChan
               onKeyDown={handleKeyDown}
               placeholder="Herhangi bir şey sor"
               rows={1}
-              className="flex-1 resize-none bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none py-3 pr-2 min-h-[36px] max-h-[200px] overflow-y-auto leading-[1.5] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
+              className="flex-1 resize-none bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none py-3 pr-3 min-h-[36px] max-h-[200px] overflow-y-auto leading-[1.5] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
               disabled={isLoading || isUploading}
               style={{ maxHeight: '200px', overflowY: 'auto' }}
             />

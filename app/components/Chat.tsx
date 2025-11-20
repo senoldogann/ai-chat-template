@@ -846,6 +846,24 @@ export default function Chat({ initialChatId }: ChatProps = {}) {
                 } catch (e) {
                   // Ignore parse errors
                 }
+              } else {
+                // Try to parse as JSON directly (Ollama format - no "data: " prefix)
+                try {
+                  const json = JSON.parse(line);
+                  if (json.message?.content) {
+                    const delta = json.message.content;
+                    aiMessageContent += delta;
+                    setMessages((prev) =>
+                      prev.map((msg, idx) =>
+                        idx === prev.length - 1
+                          ? { ...msg, content: aiMessageContent }
+                          : msg
+                      )
+                    );
+                  }
+                } catch (e) {
+                  // Ignore parse errors for non-JSON lines
+                }
               }
             }
           }

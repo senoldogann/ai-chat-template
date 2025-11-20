@@ -3,7 +3,7 @@
 export default function ThinkingIndicator() {
   return (
     <div className="bg-[var(--bg-primary)] px-4 py-6">
-      <div className="mx-auto flex max-w-3xl">
+      <div className="mx-auto flex max-w-4xl">
         {/* Content */}
         <div className="flex-1">
           <div className="flex items-center gap-2 text-[var(--text-secondary)]">
