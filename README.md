@@ -33,6 +33,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Sidebar Navigation** - Collapsible sidebar with chat history
 - **Image Support** - Upload and display images in chat
 - **Markdown Rendering** - Beautiful markdown rendering with syntax highlighting
+- **Export Conversations** - Export chats as PDF, Markdown, or JSON
+- **Print Support** - Print-friendly view for conversations
 
 ### 🛠️ Advanced Tools
 - **Calculator** - High-precision mathematical calculations
@@ -63,6 +65,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Node.js 18+ and npm/yarn/pnpm
 - PostgreSQL database (or use SQLite for development)
 - At least one LLM provider API key
+
+**Tech Stack:**
+- Next.js 16.0.1
+- React 19.2.0
+- TypeScript 5
+- Prisma 6.19.0
+- Tailwind CSS 4
 
 ### Installation
 
@@ -172,6 +181,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Type your search query
 - Browse through matching messages
 
+#### Export Conversations
+- Open a chat conversation
+- Click the download icon in the top bar
+- Select export format (PDF, Markdown, or JSON)
+- The file will be downloaded automatically
+
 ## ⚙️ Configuration
 
 ### LLM Provider Configuration
@@ -279,12 +294,17 @@ ai-chat-template/
 
 #### POST `/api/chat`
 
-Send a message to the AI.
+Send messages to the AI.
 
 **Request Body:**
 ```json
 {
-  "message": "Hello, how are you?",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, how are you?"
+    }
+  ],
   "chatId": "optional-chat-id",
   "provider": "openai",
   "model": "gpt-4o",
@@ -295,8 +315,10 @@ Send a message to the AI.
 ```
 
 **Response:**
-- Streaming response (SSE format)
+- Streaming response (SSE format) if `stream: true`
 - Or JSON response if `stream: false`
+
+**Note:** The `messages` array should contain the full conversation history. Each message must have `role` (user/assistant/system) and `content` fields.
 
 ### Chat Management API
 
@@ -315,6 +337,16 @@ Get a specific chat.
 #### DELETE `/api/chats/[chatId]`
 
 Delete a chat.
+
+#### GET `/api/chats/[chatId]/export?format=pdf|markdown|json`
+
+Export a chat conversation in different formats.
+
+**Query Parameters:**
+- `format` (required): `pdf`, `markdown`, or `json`
+
+**Response:**
+- Returns the exported file as a download
 
 ### LLM Provider API
 
@@ -406,7 +438,7 @@ Features planned for future releases:
 - [ ] **Voice input/output support** - Send and receive voice messages
 - [ ] **Multi-language support** - UI and AI support for multiple languages
 - [ ] **Plugin system for custom tools** - Plugin system for custom tools
-- [ ] **Export conversations** - Export conversations as PDF, Markdown, or JSON
+- [x] **Export conversations** - ✅ Export conversations as PDF, Markdown, or JSON (Available now!)
 - [ ] **Collaborative chat rooms** - Multiple users working in the same chat
 - [ ] **Custom model fine-tuning** - Train models with your own datasets
 - [ ] **Advanced analytics dashboard** - Usage statistics and analytics
